@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false" scanPeriod="60 seconds" debug="false">
+
+    <!-- Log output directory folder -->
+    <property name="LOG_HOME" value="logs"/>
+    <!-- Log level configuration -->
+    <property name="LOG_LEVEL" value="INFO"/>
+    <!-- Single log file size configuration -->
+    <property name="LOG_FILE_SIZE" value="20MB"/>
+    <!-- The retention time of logs, in hours -->
+    <property name="LOG_HISTORY" value="48"/>
+
+    <!-- ConsoleAppender -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${LOG_LEVEL}</level>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%logger %line] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- INFO -->
+    <appender name="RollingFileInfo" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/info.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd,aux}/info-%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_FILE_SIZE}</maxFileSize>
+            <maxHistory>${LOG_HISTORY}</maxHistory>
+            <!-- The total size of the log files -->
+            <totalSizeCap>10GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!-- log output format -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%logger %line] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ERROR -->
+    <appender name="RollingFileError" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd,aux}/error-%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_FILE_SIZE}</maxFileSize>
+            <maxHistory>${LOG_HISTORY}</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%logger %line] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- DEBUG -->
+    <appender name="RollingFileDebug" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/debug.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd,aux}/debug-%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_FILE_SIZE}</maxFileSize>
+            <maxHistory>${LOG_HISTORY}</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%logger %line] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="RollingFileInfo"/>
+        <appender-ref ref="RollingFileError"/>
+        <appender-ref ref="RollingFileDebug"/>
+    </root>
+
+</configuration>
