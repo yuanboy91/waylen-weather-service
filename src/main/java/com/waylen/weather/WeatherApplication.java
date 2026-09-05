@@ -5,16 +5,19 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Entry point for the Weather Service.
+ * Entry point of the weather service.
  *
  * <p>Exposes current-weather lookup by city name, ZIP code, or geographic
  * coordinates, backed by the OpenWeatherMap API.</p>
+ *
+ * @author Waylen
+ * @date 2026/9/5
  */
 @SpringBootApplication
-public class WeatherServiceApplication {
+public class WeatherApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(WeatherServiceApplication.class, args);
+        SpringApplication.run(WeatherApplication.class, args);
     }
 
 }

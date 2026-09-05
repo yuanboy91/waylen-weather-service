@@ -1,6 +1,6 @@
 #!/bin/bash
 # ===============================
-# Usage：
+# Usage:
 #   ./deploy.sh            
 #   ./deploy.sh --rollback 
 # ===============================
@@ -40,7 +40,7 @@ rollback() {
 # ---------- Main process ----------
 log "======== Start deployment $APP_NAME ========"
 
-log "[1/5] Retrieve the latest code（$SRC_DIR）"
+log "[1/5] Retrieve the latest code ($SRC_DIR)"
 cd "$SRC_DIR"
 git fetch origin
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo main)
@@ -73,7 +73,7 @@ log "The new package has been copied to $DEPLOY_DIR/$APP_NAME.jar"
 log "[5/5] Launch the application ..."
 cd "$DEPLOY_DIR"
 BUILD_ID=dontKillMe nohup $JAVA_CMD -jar "$APP_NAME.jar" > "$APP_NAME.log" 2>&1 &
-#log "已启动 PID=$!，等待健康检查（最多 30 秒）..."
+#log "Started PID=$!, waiting for health check (up to 30s)..."
 
 for i in $(seq 1 10); do
   sleep 3
