@@ -1,6 +1,6 @@
 package com.waylen.weather.client;
 
-import com.waylen.weather.dto.OpenWeatherMapResponse;
+import com.waylen.weather.model.dto.OpenWeatherDTO;
 
 /**
  * Thin abstraction over the OpenWeatherMap Current Weather Data API.
@@ -8,7 +8,7 @@ import com.waylen.weather.dto.OpenWeatherMapResponse;
  * @author Waylen
  * @date 2026/9/5
  */
-public interface OpenWeatherMapClient {
+public interface OpenWeatherClient {
 
     /**
      * Fetches current weather by city name, e.g. {@code "London"}.
@@ -16,7 +16,7 @@ public interface OpenWeatherMapClient {
      * @param city city name, optionally with a country code (e.g. {@code "London,GB"})
      * @return the raw upstream response
      */
-    OpenWeatherMapResponse getCurrentWeatherByCity(String city);
+    OpenWeatherDTO getCurrentWeatherByCity(String city);
 
     /**
      * Fetches current weather by ZIP code.
@@ -25,7 +25,7 @@ public interface OpenWeatherMapClient {
      * @param countryCode ISO 3166-1 alpha-2 country code, e.g. {@code "US"}
      * @return the raw upstream response
      */
-    OpenWeatherMapResponse getCurrentWeatherByZip(String zip, String countryCode);
+    OpenWeatherDTO getCurrentWeatherByZip(String zip, String countryCode);
 
     /**
      * Fetches current weather by geographic coordinates.
@@ -34,6 +34,6 @@ public interface OpenWeatherMapClient {
      * @param lon longitude, [-180, 180]
      * @return the raw upstream response
      */
-    OpenWeatherMapResponse getCurrentWeatherByCoordinates(double lat, double lon);
+    OpenWeatherDTO getCurrentWeatherByCoordinates(double lat, double lon);
 
 }

@@ -1,4 +1,4 @@
-package com.waylen.weather.dto;
+package com.waylen.weather.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,7 +20,7 @@ import java.util.List;
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OpenWeatherMapResponse implements Serializable {
+public class OpenWeatherDTO implements Serializable {
 
     private Coord coord;
     private List<Weather> weather;

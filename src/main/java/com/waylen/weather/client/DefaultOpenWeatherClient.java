@@ -1,11 +1,10 @@
 package com.waylen.weather.client;
 
-import com.waylen.weather.config.OpenWeatherMapProperties;
-import com.waylen.weather.dto.OpenWeatherMapResponse;
+import com.waylen.weather.config.OpenWeatherProperties;
 import com.waylen.weather.exception.LocationNotFoundException;
 import com.waylen.weather.exception.OpenWeatherMapException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.waylen.weather.model.dto.OpenWeatherDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -19,21 +18,20 @@ import java.net.URI;
 import java.time.Duration;
 
 /**
- * {@link RestTemplate}-based implementation of {@link OpenWeatherMapClient}.
+ * {@link RestTemplate}-based implementation of {@link OpenWeatherClient}.
  *
  * @author Waylen
  * @date 2026/9/5
  */
+@Slf4j
 @Component
-public class DefaultOpenWeatherMapClient implements OpenWeatherMapClient {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultOpenWeatherMapClient.class);
+public class DefaultOpenWeatherClient implements OpenWeatherClient {
 
     private final RestTemplate restTemplate;
-    private final OpenWeatherMapProperties properties;
+    private final OpenWeatherProperties properties;
 
-    public DefaultOpenWeatherMapClient(RestTemplateBuilder restTemplateBuilder,
-                                       OpenWeatherMapProperties properties) {
+    public DefaultOpenWeatherClient(RestTemplateBuilder restTemplateBuilder,
+                                    OpenWeatherProperties properties) {
         this.properties = properties;
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
@@ -42,7 +40,7 @@ public class DefaultOpenWeatherMapClient implements OpenWeatherMapClient {
     }
 
     @Override
-    public OpenWeatherMapResponse getCurrentWeatherByCity(String city) {
+    public OpenWeatherDTO getCurrentWeatherByCity(String city) {
         URI uri = baseUri()
                 .queryParam("q", city)
                 .build()
@@ -51,7 +49,7 @@ public class DefaultOpenWeatherMapClient implements OpenWeatherMapClient {
     }
 
     @Override
-    public OpenWeatherMapResponse getCurrentWeatherByZip(String zip, String countryCode) {
+    public OpenWeatherDTO getCurrentWeatherByZip(String zip, String countryCode) {
         // The upstream API expects "zip={zip},{country}", e.g. zip=10001,US
         URI uri = baseUri()
                 .queryParam("zip", zip + "," + countryCode)
@@ -61,7 +59,7 @@ public class DefaultOpenWeatherMapClient implements OpenWeatherMapClient {
     }
 
     @Override
-    public OpenWeatherMapResponse getCurrentWeatherByCoordinates(double lat, double lon) {
+    public OpenWeatherDTO getCurrentWeatherByCoordinates(double lat, double lon) {
         URI uri = baseUri()
                 .queryParam("lat", lat)
                 .queryParam("lon", lon)
@@ -76,10 +74,10 @@ public class DefaultOpenWeatherMapClient implements OpenWeatherMapClient {
                 .queryParam("units", properties.getUnits());
     }
 
-    private OpenWeatherMapResponse fetch(URI uri, String queryDescription) {
+    private OpenWeatherDTO fetch(URI uri, String queryDescription) {
         log.debug("Calling OpenWeatherMap: query={}", queryDescription);
         try {
-            return restTemplate.getForObject(uri, OpenWeatherMapResponse.class);
+            return restTemplate.getForObject(uri, OpenWeatherDTO.class);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new LocationNotFoundException(queryDescription, e);

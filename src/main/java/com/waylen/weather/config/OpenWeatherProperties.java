@@ -15,12 +15,12 @@ import org.springframework.stereotype.Component;
 @Getter
 @Component
 @ConfigurationProperties(prefix = "openweathermap.api")
-public class OpenWeatherMapProperties {
+public class OpenWeatherProperties {
 
     /**
      * Base URL of the OpenWeatherMap Current Weather Data API
      */
-    private String baseUrl = "https://api.openweathermap.org/data/2.5";
+    private String baseUrl;
 
     /**
      * API key (appid)
@@ -30,16 +30,16 @@ public class OpenWeatherMapProperties {
     /**
      * Units for temperature/wind values: metric | imperial | standard
      */
-    private String units = "metric";
+    private String units;
 
     /**
      * TCP connect timeout (ms) when calling the upstream API
      */
-    private int connectTimeoutMs = 3000;
+    private int connectTimeoutMs;
 
     /**
      * Socket read timeout (ms) when calling the upstream API
      */
-    private int readTimeoutMs = 5000;
+    private int readTimeoutMs;
 
 }
