@@ -2,6 +2,7 @@ package com.waylen.weather;
 
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Waylen
  * @date 2026/9/5
  */
+@EnableRetry
 @SpringBootApplication
 public class WeatherApplication {
 

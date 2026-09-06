@@ -261,7 +261,7 @@ The deployment sits behind a private network reachable only through OpenVPN. Mat
 
 ## Limitations & Future Improvements
 
-- **Retry / circuit breaker**: the client has no retry-on-disconnect logic; Spring Retry could be introduced next
+- **Circuit breaker**: transient upstream failures (network / 5xx / 429) are now retried by spring-retry (3 attempts, 500 ms backoff doubling each time); a circuit breaker remains a future option
 - **Authentication**: currently none — relies on VPN for perimeter security; a token gateway could be added next
 - **HTTPS**: currently plain HTTP; external exposure needs nginx + TLS in front
 - **Observability**: only `/health` today; Micrometer / Prometheus could be layered on

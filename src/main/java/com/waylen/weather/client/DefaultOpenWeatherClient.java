@@ -10,6 +10,8 @@ import com.waylen.weather.model.domain.WeatherResponse.Wind;
 import com.waylen.weather.model.dto.OpenWeatherDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -39,6 +41,10 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
         this.properties = properties;
     }
 
+    @Retryable(
+            include = OpenWeatherMapException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2))
     @Override
     public WeatherResponse getCurrentWeatherByCity(String city) {
         URI uri = baseUri()
@@ -48,6 +54,10 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
         return toWeather(fetch(uri, "city=" + city));
     }
 
+    @Retryable(
+            include = OpenWeatherMapException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2))
     @Override
     public WeatherResponse getCurrentWeatherByZip(String zip, String countryCode) {
         // The upstream API expects "zip={zip},{country}", e.g. zip=10001,US
@@ -58,6 +68,10 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
         return toWeather(fetch(uri, "zip=" + zip + "," + countryCode));
     }
 
+    @Retryable(
+            include = OpenWeatherMapException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2))
     @Override
     public WeatherResponse getCurrentWeatherByCoordinates(double lat, double lon) {
         URI uri = baseUri()
@@ -81,6 +95,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
             return JSON.parseObject(body);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                // Deterministic failure, retry meaningless
                 throw new LocationNotFoundException(queryDescription, e);
             }
             // e.g. 401 (invalid API key), 429 (rate limited)
