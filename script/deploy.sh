@@ -32,7 +32,7 @@ stop_app() {
 # Start app and poll health check
 start_and_check() {
   cd "$DEPLOY_DIR"
-  BUILD_ID=dontKillMe nohup $JAVA_CMD -jar "$APP_NAME.jar" $JAVA_ARGS > "$APP_NAME.log" 2>&1 &
+  nohup $JAVA_CMD $JVM_OPTS -jar -Xms512m -Xmx512m "$APP_NAME.jar" $JAVA_ARGS > "$APP_NAME.log" 2>&1 &
   log "Waiting for health check (max $((HEALTH_RETRIES * HEALTH_INTERVAL))s)..."
   for i in $(seq 1 $HEALTH_RETRIES); do
     sleep $HEALTH_INTERVAL
