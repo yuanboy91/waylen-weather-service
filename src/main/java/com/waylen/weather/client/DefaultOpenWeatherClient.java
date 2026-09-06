@@ -5,7 +5,6 @@ import com.waylen.weather.exception.LocationNotFoundException;
 import com.waylen.weather.exception.OpenWeatherMapException;
 import com.waylen.weather.model.dto.OpenWeatherDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -15,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.time.Duration;
 
 /**
  * {@link RestTemplate}-based implementation of {@link OpenWeatherClient}.
@@ -30,13 +28,10 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     private final RestTemplate restTemplate;
     private final OpenWeatherProperties properties;
 
-    public DefaultOpenWeatherClient(RestTemplateBuilder restTemplateBuilder,
+    public DefaultOpenWeatherClient(RestTemplate restTemplate,
                                     OpenWeatherProperties properties) {
+        this.restTemplate = restTemplate;
         this.properties = properties;
-        this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
-                .setReadTimeout(Duration.ofMillis(properties.getReadTimeoutMs()))
-                .build();
     }
 
     @Override

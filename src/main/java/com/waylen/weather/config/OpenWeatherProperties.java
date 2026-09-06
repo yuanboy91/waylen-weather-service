@@ -33,12 +33,12 @@ public class OpenWeatherProperties {
     private String units;
 
     /**
-     * TCP connect timeout (ms) when calling the upstream API
+     * TCP connect timeout (ms)
      */
     private int connectTimeoutMs;
 
     /**
-     * Socket read timeout (ms) when calling the upstream API
+     * Socket read timeout (ms)
      */
     private int readTimeoutMs;
 
