@@ -1,68 +1,60 @@
 #!/bin/bash
-# ============================================================
-# monitor.sh — Application health monitor + email alert
-# Schedule: run every 5 minutes via crontab
-# ============================================================
+# monitor.sh — Application health monitor + email alert (crontab every 5 min)
 
-# ---------- Setting ----------
+# ---- config ----
 APP_NAME="waylen-weather-service"
 APP_PORT="8099"
 HEALTH_URL="http://localhost:${APP_PORT}/actuator/health"
-STATE_FILE="/tmp/monitor.state"
 LOG_FILE="/home/deploy/monitor.log"
+STATE_FILE="/tmp/monitor.state"
 
-# SMTP
 SMTP_SERVER="smtp.qq.com"
 SMTP_PORT="465"
 SMTP_USER="yuanboy91@qq.com"
-SMTP_AUTH_CODE="bhzkogqroqrccbea"
+SMTP_AUTH_CODE=""
 MAIL_TO="yuanboy91@qq.com"
-# -------------------------------
+# --------------
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"; }
 
-# send an email
+# Send email and log result
 send_mail() {
-  local subject="$1" body="$2" subj_b64
-  subj_b64=$(printf '%s' "$subject" | base64 -w0)   # UTF-8 encode Chinese subject
+  local subject="$1" body="$2"
+  local subj_b64=$(printf '%s' "$subject" | base64 -w0)
   {
-    printf 'From: %s\n' "$SMTP_USER"
-    printf 'To: %s\n' "$MAIL_TO"
+    printf 'From: %s\nTo: %s\n' "$SMTP_USER" "$MAIL_TO"
     printf 'Subject: =?UTF-8?B?%s?=\n' "$subj_b64"
-    printf 'Content-Type: text/plain; charset=utf-8\n'
-    printf '\n%s\n' "$body"
+    printf 'Content-Type: text/plain; charset=utf-8\n\n%s\n' "$body"
   } > /tmp/mail_body.txt
-  curl -s --url "smtps://${SMTP_SERVER}:${SMTP_PORT}" \
-       --ssl-reqd \
-       --mail-from "$SMTP_USER" \
-       --mail-rcpt "$MAIL_TO" \
-       -u "${SMTP_USER}:${SMTP_AUTH_CODE}" \
-       -T /tmp/mail_body.txt
+  if curl -s "smtps://${SMTP_SERVER}:${SMTP_PORT}" --ssl-reqd \
+       --mail-from "$SMTP_USER" --mail-rcpt "$MAIL_TO" \
+       -u "${SMTP_USER}:${SMTP_AUTH_CODE}" -T /tmp/mail_body.txt; then
+    log "✔ Email sent: $subject"
+  else
+    log "✘ Email failed: $subject"
+  fi
   rm -f /tmp/mail_body.txt
 }
 
-# Health check: retry 3 times on failure
+# Health check: retry 3 times, 5s interval
 check() {
   for i in 1 2 3; do
-    if curl -fsS --connect-timeout 5 --max-time 10 "$HEALTH_URL" >/dev/null 2>&1; then
-      return 0
-    fi
+    curl -fsS --connect-timeout 5 --max-time 10 "$HEALTH_URL" >/dev/null 2>&1 && return 0
     [ "$i" -lt 3 ] && sleep 5
   done
   return 1
 }
 
-# No state file means last status was OK
 PREV=$(cat "$STATE_FILE" 2>/dev/null || echo ok)
 
-# Application exception: only handle failures; normal state is fully silent
+# Health check failed
 if ! check; then
   if [ "$PREV" = "down" ]; then
-    log "Continuous abnormal application"
+    log "Still down, skip repeated alert"
   else
-    log "Application exception, send alert email"
-    send_mail "【Alert】${APP_NAME} Health check failed" \
-"Application health check failed: ${HEALTH_URL}
+    log "App is down, sending alert email"
+    send_mail "[Alert] ${APP_NAME} health check failed" \
+"Health check failed: ${HEALTH_URL}
 Time: $(date '+%Y-%m-%d %H:%M:%S')
 Please log in to the server to check."
   fi
@@ -70,5 +62,11 @@ Please log in to the server to check."
   exit 1
 fi
 
-# Normal: only reset state silently
+# Health check passed, send recovery email if was down
+if [ "$PREV" = "down" ]; then
+  log "App recovered, sending recovery email"
+  send_mail "[Recovered] ${APP_NAME} is back to normal" \
+"Health check recovered: ${HEALTH_URL}
+Time: $(date '+%Y-%m-%d %H:%M:%S')"
+fi
 echo ok > "$STATE_FILE"

@@ -1,7 +1,8 @@
 package com.waylen.weather.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.waylen.weather.client.OpenWeatherClient;
-import com.waylen.weather.model.dto.OpenWeatherDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,8 +11,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Collections;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -19,19 +18,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * WeatherController HTTP-layer tests.
- * <p>
- * Replaces a previous version that hit the real OpenWeatherMap endpoint
- * (it required a valid API key in the test JVM and was unreliable in CI).
- * This version stubs {@link OpenWeatherClient} via {@code @MockBean}, so the
- * test only exercises:
- * <ul>
- *     <li>URL routing / parameter binding on the controller.</li>
- *     <li>Bean validation on request parameters (returns 400).</li>
- *     <li>JSON serialisation of the domain response.</li>
- * </ul>
- * The client layer itself is covered by
- * {@link com.waylen.weather.client.OpenWeatherClientTest}.
+ * HTTP-layer tests for {@link WeatherController}: routing, parameter
+ * validation and JSON serialisation, with {@link OpenWeatherClient}
+ * stubbed via {@code @MockBean} (no network access required).
  *
  * @author Waylen
  * @date 2026/9/5
@@ -42,65 +31,26 @@ public class WeatherControllerTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
-    /**
-     * Replaces the real HTTP-calling bean. Anything not stubbed returns
-     * Mockito's default (null), which is why each happy-path test must
-     * {@code when(...)} the specific method it calls.
-     */
     @MockBean
     private OpenWeatherClient openWeatherClient;
 
-    private OpenWeatherDTO buildMockDTO() {
-        OpenWeatherDTO dto = new OpenWeatherDTO();
-        dto.setName("Beijing");
-
-        OpenWeatherDTO.Coord coord = new OpenWeatherDTO.Coord();
-        coord.setLat(39.9042);
-        coord.setLon(116.4074);
-        dto.setCoord(coord);
-
-        OpenWeatherDTO.Main main = new OpenWeatherDTO.Main();
-        main.setTemp(25.0);
-        main.setFeelsLike(26.0);
-        main.setTempMin(23.0);
-        main.setTempMax(27.0);
-        main.setHumidity(60);
-        main.setPressure(1013);
-        dto.setMain(main);
-
-        OpenWeatherDTO.Weather weather = new OpenWeatherDTO.Weather();
-        weather.setMain("Clear");
-        weather.setDescription("clear sky");
-        weather.setIcon("01d");
-        dto.setWeather(Collections.singletonList(weather));
-
-        OpenWeatherDTO.Wind wind = new OpenWeatherDTO.Wind();
-        wind.setSpeed(3.5);
-        wind.setDeg(180);
-        dto.setWind(wind);
-
-        OpenWeatherDTO.Sys sys = new OpenWeatherDTO.Sys();
-        sys.setCountry("CN");
-        sys.setSunrise(1725500000L);
-        sys.setSunset(1725546000L);
-        dto.setSys(sys);
-
-        OpenWeatherDTO.Clouds clouds = new OpenWeatherDTO.Clouds();
-        clouds.setAll(0);
-        dto.setClouds(clouds);
-
-        dto.setVisibility(10000);
-        dto.setDt(1725520000L);
-        dto.setTimezone(28800);
-        return dto;
+    /**
+     * Canonical weather JSON fixture used to stub the client.
+     */
+    private static JSONObject buildMockJson() {
+        return JSON.parseObject("{\"name\":\"Beijing\","
+                + "\"coord\":{\"lat\":39.9042,\"lon\":116.4074},"
+                + "\"main\":{\"temp\":25.0,\"feels_like\":26.0,\"temp_min\":23.0,\"temp_max\":27.0,"
+                + "\"humidity\":60,\"pressure\":1013},"
+                + "\"weather\":[{\"main\":\"Clear\",\"description\":\"clear sky\",\"icon\":\"01d\"}],"
+                + "\"wind\":{\"speed\":3.5,\"deg\":180},"
+                + "\"sys\":{\"country\":\"CN\",\"sunrise\":1725500000,\"sunset\":1725546000},"
+                + "\"clouds\":{\"all\":0},\"visibility\":10000,\"dt\":1725520000,\"timezone\":28800}");
     }
-
-    // ------------------------------------------------------- /api/weather/city
 
     @Test
     void getByCity_shouldReturnWeather() {
-        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN"))
-                .thenReturn(buildMockDTO());
+        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN")).thenReturn(buildMockJson());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/city?city=Beijing,CN", String.class);
@@ -122,12 +72,9 @@ public class WeatherControllerTest {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
-    // -------------------------------------------------------- /api/weather/zip
-
     @Test
     void getByZip_shouldReturnWeather() {
-        when(openWeatherClient.getCurrentWeatherByZip("100001", "CN"))
-                .thenReturn(buildMockDTO());
+        when(openWeatherClient.getCurrentWeatherByZip("100001", "CN")).thenReturn(buildMockJson());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/zip?zip=100001&country=CN", String.class);
@@ -145,12 +92,10 @@ public class WeatherControllerTest {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
-    // ------------------------------------------------ /api/weather/coordinates
-
     @Test
     void getByCoordinates_shouldReturnWeather() {
         when(openWeatherClient.getCurrentWeatherByCoordinates(39.9042, 116.4074))
-                .thenReturn(buildMockDTO());
+                .thenReturn(buildMockJson());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/coordinates?lat=39.9042&lon=116.4074", String.class);
@@ -170,14 +115,13 @@ public class WeatherControllerTest {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
-    // Sanity: all three happy-path stubs get the same DTO — proves we hit the
-    // service layer with the @Cacheable annotation in place (cache itself is
-    // covered by WeatherServiceCacheTest).
+    // Sanity: all three endpoints route through the @Cacheable service layer
+    // (cache behaviour itself is covered by WeatherServiceCacheTest).
     @Test
-    void allThreeEndpoints_useTheSameMockBean() {
-        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockDTO());
-        when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockDTO());
-        when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockDTO());
+    void allThreeEndpoints_shouldHitTheServiceLayer() {
+        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockJson());
+        when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockJson());
+        when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockJson());
 
         restTemplate.getForEntity("/api/weather/city?city=Tokyo", String.class);
         restTemplate.getForEntity("/api/weather/zip?zip=10001&country=US", String.class);
@@ -187,4 +131,5 @@ public class WeatherControllerTest {
         verify(openWeatherClient).getCurrentWeatherByZip("10001", "US");
         verify(openWeatherClient).getCurrentWeatherByCoordinates(0.0, 0.0);
     }
+
 }

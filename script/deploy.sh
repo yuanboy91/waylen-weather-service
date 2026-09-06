@@ -1,90 +1,80 @@
 #!/bin/bash
-# ===============================
-# Usage:
-#   ./deploy.sh            
-#   ./deploy.sh --rollback 
-# ===============================
+# Deploy: pull → build → deploy; supports --rollback
+# Usage: ./deploy.sh [--rollback]
 set -e
 
-# ---------- Setting ----------
+# ---- config ----
 APP_NAME="waylen-weather-service"
 APP_PORT="8099"
 SRC_DIR="/home/deploy/waylen-weather-service"
 DEPLOY_DIR="/opt/application"
 JAVA_CMD="java"
-# -----------------------------
+HEALTH_URL="http://localhost:${APP_PORT}/actuator/health"
+HEALTH_RETRIES=10
+HEALTH_INTERVAL=3
+OPENWEATHERMAP_API_KEY=""
+# --------------
 
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ---------- Rollback ----------
-rollback() {
-  log "======== Roll back to the last backup ========"
-  [ -f "$DEPLOY_DIR/$APP_NAME.jar.bak" ] || { log "No backup files available"; exit 1; }
-  
-  OLD=$(pgrep -f "${APP_NAME}.jar" || true)
-  [ -n "$OLD" ] && { log "Stop the process $OLD"; kill $OLD || true; sleep 5; }
-  
-  cp "$DEPLOY_DIR/$APP_NAME.jar.bak" "$DEPLOY_DIR/$APP_NAME.jar"
-  cd "$DEPLOY_DIR"
-  BUILD_ID=dontKillMe nohup $JAVA_CMD -jar "$APP_NAME.jar" > "$APP_NAME.log" 2>&1 &
-  
-  sleep 15
-  curl -fsS "http://localhost:${APP_PORT}/actuator/health" >/dev/null 2>&1 \
-    && log "✔ Rollback completed" \
-    || { log "✘ Rollback failed, Please check the application"; tail -n 30 "$APP_NAME.log"; exit 1; }
+[ -n "$OPENWEATHERMAP_API_KEY" ] && JAVA_ARGS="--openweathermap.api.key=$OPENWEATHERMAP_API_KEY" || JAVA_ARGS=""
+
+# Graceful shutdown (5s), force kill on timeout
+stop_app() {
+  local pid=$(pgrep -f "${APP_NAME}.jar" || true)
+  [ -z "$pid" ] && return
+  log "Stopping PID: $pid"
+  kill "$pid" 2>/dev/null || true
+  sleep 5
+  kill -9 "$pid" 2>/dev/null || true
 }
 
-[ "$1" = "--rollback" ] && rollback
-# ---------- Rollback ----------
+# Start app and poll health check
+start_and_check() {
+  cd "$DEPLOY_DIR"
+  BUILD_ID=dontKillMe nohup $JAVA_CMD -jar "$APP_NAME.jar" $JAVA_ARGS > "$APP_NAME.log" 2>&1 &
+  log "Waiting for health check (max $((HEALTH_RETRIES * HEALTH_INTERVAL))s)..."
+  for i in $(seq 1 $HEALTH_RETRIES); do
+    sleep $HEALTH_INTERVAL
+    curl -fsS "$HEALTH_URL" >/dev/null 2>&1 && { log "✔ Health check passed"; return 0; }
+    log "  Health check $i/$HEALTH_RETRIES ..."
+  done
+  log "✘ Health check timeout"
+  tail -n 30 "$DEPLOY_DIR/$APP_NAME.log" || true
+  return 1
+}
 
+# ---- rollback ----
+if [ "$1" = "--rollback" ]; then
+  log "======== Rollback ========"
+  [ -f "$DEPLOY_DIR/$APP_NAME.jar.bak" ] || { log "No backup available"; exit 1; }
+  stop_app
+  cp "$DEPLOY_DIR/$APP_NAME.jar.bak" "$DEPLOY_DIR/$APP_NAME.jar"
+  start_and_check && { log "✔ Rollback done"; exit 0; }
+  log "✘ Rollback failed"; exit 1
+fi
 
-# ---------- Main process ----------
-log "======== Start deployment $APP_NAME ========"
+# ---- deploy ----
+log "======== Deploying $APP_NAME ========"
 
-log "[1/5] Retrieve the latest code ($SRC_DIR)"
+log "[1/5] Pulling code"
 cd "$SRC_DIR"
 git fetch origin
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo main)
 git reset --hard "origin/$BRANCH"
 
-
-log "[2/5] Maven packaging"
+log "[2/5] Building"
 mvn clean package -DskipTests
 JAR="$SRC_DIR/target/$APP_NAME.jar"
-[ -f "$JAR" ] || { log "The packaged product does not exist: $JAR"; exit 1; }
-log "Maven packaging completed: $JAR"
+[ -f "$JAR" ] || { log "Artifact not found: $JAR"; exit 1; }
 
+log "[3/5] Stopping old process"
+stop_app
 
-log "[3/5] Stop the old process"
-OLD_PID=$(pgrep -f "${APP_NAME}.jar" || true)
-if [ -n "$OLD_PID" ]; then
-  log "Stop PID: $OLD_PID"
-  kill $OLD_PID || true
-  sleep 5
-  kill -9 $OLD_PID 2>/dev/null || true
-fi
-
-
-log "[4/5] Backup old packages and copy new packages"
+log "[4/5] Deploying package"
 [ -f "$DEPLOY_DIR/$APP_NAME.jar" ] && cp "$DEPLOY_DIR/$APP_NAME.jar" "$DEPLOY_DIR/$APP_NAME.jar.bak"
 cp "$JAR" "$DEPLOY_DIR/"
-log "The new package has been copied to $DEPLOY_DIR/$APP_NAME.jar"
 
-
-log "[5/5] Launch the application ..."
-cd "$DEPLOY_DIR"
-BUILD_ID=dontKillMe nohup $JAVA_CMD -jar "$APP_NAME.jar" > "$APP_NAME.log" 2>&1 &
-#log "Started PID=$!, waiting for health check (up to 30s)..."
-
-for i in $(seq 1 10); do
-  sleep 3
-  if curl -fsS "http://localhost:${APP_PORT}/actuator/health" >/dev/null 2>&1; then
-    log "✔ Deployment successful"
-    exit 0
-  fi
-done
-
-log "✘ Health check timeout, Please check the application"
-tail -n 30 "$DEPLOY_DIR/$APP_NAME.log" || true
-exit 1
-# -----------------------------
-
+log "[5/5] Starting application"
+start_and_check && { log "✔ Deployed"; exit 0; }
+log "✘ Deploy failed"; exit 1

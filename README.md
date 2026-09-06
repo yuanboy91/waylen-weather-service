@@ -2,6 +2,8 @@
 
 A lightweight Spring Boot service for querying current weather by **city name**, **ZIP / postal code**, or **geographic coordinates**. It sits on top of the [OpenWeatherMap Current Weather API](https://openweathermap.org/current) and is designed to run inside a **private network reachable only via VPN**.
 
+**Repository**: <https://github.com/yuanboy91/waylen-weather-service>
+
 ---
 
 ## Features
@@ -95,7 +97,14 @@ waylen-weather-service/
 
 ## Quick Start
 
-### 1. Build
+### 1. Clone
+
+```bash
+git clone https://github.com/yuanboy91/waylen-weather-service.git
+cd waylen-weather-service
+```
+
+### 2. Build
 
 ```bash
 mvn clean package -DskipTests
@@ -103,7 +112,7 @@ mvn clean package -DskipTests
 
 Artifact: `target/waylen-weather-service.jar`
 
-### 2. Run
+### 3. Run
 
 ```bash
 java -jar target/waylen-weather-service.jar
