@@ -77,6 +77,7 @@ waylen-weather-service/
     │   └── service/                  WeatherService
     └── test/java/com/waylen/weather/
         ├── client/OpenWeatherClientTest.java          real-API integration
+        ├── client/DefaultOpenWeatherClientTest.java   unit: conversion + error translation
         ├── client/WeatherServiceCacheTest.java        cache hits / isolation / evict
         └── controller/WeatherControllerTest.java      @MockBean + TestRestTemplate
 ```
@@ -145,6 +146,19 @@ Base path: `/api/weather` &nbsp;·&nbsp; `Content-Type: application/json`
 | `lat` | float | yes | `-90.0` ≤ x ≤ `90.0` |
 | `lon` | float | yes | `-180.0` ≤ x ≤ `180.0` |
 
+### Example Calls
+
+```bash
+# 1. By city name (optionally with a country suffix)
+curl -s 'http://localhost:8099/api/weather/city?city=London,GB'
+
+# 2. By ZIP / postal code + ISO country code
+curl -s 'http://localhost:8099/api/weather/zip?zip=10001&country=US'
+
+# 3. By geographic coordinates
+curl -s 'http://localhost:8099/api/weather/coordinates?lat=48.8566&lon=2.3522'
+```
+
 ### Response Shape
 
 Success responses are uniformly wrapped by the controller in `ApiResponse<T>`:
@@ -200,6 +214,7 @@ All error responses share a unified shape:
 
 | Test Class | Style | Notes |
 |---|---|---|
+| `DefaultOpenWeatherClientTest` | unit (Mockito `RestTemplate` mock) | Payload → domain conversion and upstream error translation, no network |
 | `WeatherServiceCacheTest` | `@SpringBootTest` | Verifies `@Cacheable` semantics; stubbed client, no network |
 | `WeatherControllerTest` | `@SpringBootTest` + `@MockBean` + `TestRestTemplate` | HTTP-layer end-to-end, no API key required |
 | `OpenWeatherClientTest` | `@SpringBootTest` (conditionally enabled) | Hits the real upstream API, gated by `@EnabledIfEnvironmentVariable`; skipped without an API key |

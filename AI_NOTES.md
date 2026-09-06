@@ -19,7 +19,7 @@ This document describes the scope of AI tool usage in the **Waylen Weather Servi
 Business code (`src/main/java/com/waylen/weather/{client, service, controller, exception, model, config}`, `pom.xml`, VPN materials, etc.) was implemented by the author, covering the following technical decisions:
 
 - **OpenWeatherMap client**: interface granularity (three query methods), exception translation rules (404 → `LocationNotFoundException`, 5xx / timeout / network failure → `OpenWeatherMapException`)
-- **DTO-to-domain mapping**: null-safety strategy for `weather` / `main` / `sys` / `wind` sections in `WeatherService.toWeather()`
+- **DTO-to-domain mapping**: null-safety strategy for `weather` / `main` / `sys` / `wind` sections in `DefaultOpenWeatherClient.toWeather()`
 - **REST controller contracts + global error handling**: `@RequestParam` validation constraints on all three endpoints; error-code mapping in `@RestControllerAdvice` (`INVALID_ARGUMENT` / `LOCATION_NOT_FOUND` / `UPSTREAM_ERROR` / `INTERNAL_ERROR`)
 - **Configuration layer**: `OpenWeatherProperties` binding `base-url` / `key` / `units` / `connect-timeout-ms` / `read-timeout-ms`; `RestTemplateConfig` exposing a shared `RestTemplate` with a `User-Agent` interceptor; `CacheConfig` building a Caffeine `CaffeineCacheManager` (TTL `10m`, max-size `500`)
 - **Cache integration**: `@Cacheable` annotations and cache key design (`city` / `zip,country` / `lat,lon`) on the three `WeatherService` query methods

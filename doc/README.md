@@ -12,7 +12,6 @@ that the service is unreachable from the public internet (the assignment's
 | `client01.ovpn`                            | OpenVPN client profile for the reviewer (server `49.51.242.10:1194`, UDP, `tun`, `tls-crypt`). |
 | `openvpn-install-2.4.7-I607.exe`           | Windows installer for the OpenVPN GUI client.                                                 |
 | `README.md`                                | This file.                                                                                    |
-| `unreachable-proof.sh`                     | One-shot bash script that proves the service is not reachable from a non-VPN egress. Captures the result of a curl attempt that should fail with `Connection timed out` / `No route to host`. |
 
 ## Connecting
 
@@ -69,25 +68,30 @@ reachable from the public internet. The reviewer's host is the right place to
 generate that evidence — it is the same network from which a curious attacker
 or a careless deploy would try to reach the service.
 
-### Scripted check
+### Manual check (no VPN)
 
-`unreachable-proof.sh` automates the negative test. Run it on any host that
-**is not** connected to the VPN:
+Run the negative test on any host that **is not** connected to the VPN. Two
+targets matter:
+
+1. The VPN-internal address — unreachable without the tunnel by design:
+   `10.8.0.1:8099` (RFC 1918 private range, no route without OpenVPN).
+2. The deploy server's public IP — must NOT answer on port `8099`:
+   `49.51.242.10:8099`.
 
 ```bash
-./unreachable-proof.sh <vpn-internal-host>
-# or with the public IP fallback
-./unreachable-proof.sh <vpn-internal-host> <public-ip-of-deploy-server>
+# 1. VPN-internal address (no tunnel -> no route)
+curl -fsS --connect-timeout 5 --max-time 10 http://10.8.0.1:8099/actuator/health
+
+# 2. Deploy server public IP (must NOT respond)
+curl -fsS --connect-timeout 5 --max-time 10 http://49.51.242.10:8099/actuator/health
 ```
 
-Expected output:
+Expected outcome for both commands:
 
 ```
-[unreachable-proof] Target: <vpn-internal-host>:8099
-[unreachable-proof] Probing without VPN ...
-[unreachable-proof] PASS: connection refused / timed out as expected
+PASS: connection refused / timed out as expected
         curl exit code: 7  (Couldn't connect to server)
-        stderr: curl: (7) Failed to connect to <vpn-internal-host> port 8099: Connection timed out
+        stderr: curl: (7) Failed to connect to <target> port 8099: Connection timed out
 ```
 
 A failure mode that would *not* satisfy the proof:
