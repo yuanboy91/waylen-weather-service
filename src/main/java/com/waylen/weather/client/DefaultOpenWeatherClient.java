@@ -17,6 +17,15 @@ import java.net.URI;
 
 /**
  * {@link RestTemplate}-based implementation of {@link OpenWeatherClient}.
+ * <p>
+ * Uses the shared {@link RestTemplate} bean from
+ * {@link com.waylen.weather.config.RestTemplateConfig}, which means connection
+ * and read timeouts as well as the {@code User-Agent} header are configured
+ * in one place. This client is only responsible for building the upstream URL
+ * and translating upstream failures into our own exception taxonomy
+ * ({@link LocationNotFoundException} for 404, {@link OpenWeatherMapException}
+ * for everything else). Mapping the wire format to the domain model happens
+ * in the service layer.
  *
  * @author Waylen
  * @date 2026/9/5

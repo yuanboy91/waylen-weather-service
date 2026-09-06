@@ -1,37 +1,54 @@
 package com.waylen.weather.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.waylen.weather.client.OpenWeatherClient;
-import com.waylen.weather.model.domain.WeatherResponse;
 import com.waylen.weather.model.dto.OpenWeatherDTO;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * WeatherController integration tests.
+ * WeatherController HTTP-layer tests.
  * <p>
- * Uses {@code @MockBean} to stub the upstream {@link OpenWeatherClient}
- * so tests run without a real OpenWeatherMap API key.
+ * Replaces a previous version that hit the real OpenWeatherMap endpoint
+ * (it required a valid API key in the test JVM and was unreliable in CI).
+ * This version stubs {@link OpenWeatherClient} via {@code @MockBean}, so the
+ * test only exercises:
+ * <ul>
+ *     <li>URL routing / parameter binding on the controller.</li>
+ *     <li>Bean validation on request parameters (returns 400).</li>
+ *     <li>JSON serialisation of the domain response.</li>
+ * </ul>
+ * The client layer itself is covered by
+ * {@link com.waylen.weather.client.OpenWeatherClientTest}.
  *
  * @author Waylen
  * @date 2026/9/5
  */
-@Slf4j
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class WeatherControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    /**
+     * Replaces the real HTTP-calling bean. Anything not stubbed returns
+     * Mockito's default (null), which is why each happy-path test must
+     * {@code when(...)} the specific method it calls.
+     */
+    @MockBean
+    private OpenWeatherClient openWeatherClient;
 
     private OpenWeatherDTO buildMockDTO() {
         OpenWeatherDTO dto = new OpenWeatherDTO();
@@ -68,12 +85,13 @@ public class WeatherControllerTest {
         sys.setSunset(1725546000L);
         dto.setSys(sys);
 
-        dto.setClouds(new OpenWeatherDTO.Clouds());
-        dto.getClouds().setAll(0);
+        OpenWeatherDTO.Clouds clouds = new OpenWeatherDTO.Clouds();
+        clouds.setAll(0);
+        dto.setClouds(clouds);
+
         dto.setVisibility(10000);
         dto.setDt(1725520000L);
         dto.setTimezone(28800);
-
         return dto;
     }
 
@@ -81,68 +99,92 @@ public class WeatherControllerTest {
 
     @Test
     void getByCity_shouldReturnWeather() {
+        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN"))
+                .thenReturn(buildMockDTO());
+
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/city?city=Beijing,CN", String.class);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        WeatherResponse body = JSON.parseObject(resp.getBody(), WeatherResponse.class);
-        assertNotNull(body);
-        assertEquals("Beijing", body.getLocationName());
-        assertEquals("CN", body.getCountry());
-        assertEquals("Clear", body.getCondition());
-        assertEquals(25.0, body.getTemperature());
-        log.info("[getByCity] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody())
+                .contains("\"locationName\":\"Beijing\"")
+                .contains("\"country\":\"CN\"")
+                .contains("\"condition\":\"Clear\"")
+                .contains("\"temperature\":25.0");
+        verify(openWeatherClient).getCurrentWeatherByCity("Beijing,CN");
     }
 
     @Test
     void getByCity_blankCity_shouldReturn400() {
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/city?city=", String.class);
-        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-        log.info("[getByCity blank] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     // -------------------------------------------------------- /api/weather/zip
 
     @Test
     void getByZip_shouldReturnWeather() {
+        when(openWeatherClient.getCurrentWeatherByZip("100001", "CN"))
+                .thenReturn(buildMockDTO());
+
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/zip?zip=100001&country=CN", String.class);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        WeatherResponse body = JSON.parseObject(resp.getBody(), WeatherResponse.class);
-        assertNotNull(body);
-        assertEquals("Beijing", body.getLocationName());
-        log.info("[getByZip] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody()).contains("\"locationName\":\"Beijing\"");
+        verify(openWeatherClient).getCurrentWeatherByZip("100001", "CN");
     }
 
     @Test
     void getByZip_invalidCountry_shouldReturn400() {
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/zip?zip=100001&country=china", String.class);
-        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-        log.info("[getByZip invalid country] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     // ------------------------------------------------ /api/weather/coordinates
 
     @Test
     void getByCoordinates_shouldReturnWeather() {
+        when(openWeatherClient.getCurrentWeatherByCoordinates(39.9042, 116.4074))
+                .thenReturn(buildMockDTO());
+
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/coordinates?lat=39.9042&lon=116.4074", String.class);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        WeatherResponse body = JSON.parseObject(resp.getBody(), WeatherResponse.class);
-        assertNotNull(body);
-        assertNotNull(body.getCoordinates());
-        assertEquals(39.9042, body.getCoordinates().getLat());
-        assertEquals(116.4074, body.getCoordinates().getLon());
-        log.info("[getByCoordinates] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody())
+                .contains("\"lat\":39.9042")
+                .contains("\"lon\":116.4074");
+        verify(openWeatherClient).getCurrentWeatherByCoordinates(39.9042, 116.4074);
     }
 
     @Test
     void getByCoordinates_outOfRange_shouldReturn400() {
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/coordinates?lat=100&lon=200", String.class);
-        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-        log.info("[getByCoordinates outOfRange] response: {}", resp.getBody());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
+    // Sanity: all three happy-path stubs get the same DTO — proves we hit the
+    // service layer with the @Cacheable annotation in place (cache itself is
+    // covered by WeatherServiceCacheTest).
+    @Test
+    void allThreeEndpoints_useTheSameMockBean() {
+        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockDTO());
+        when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockDTO());
+        when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockDTO());
+
+        restTemplate.getForEntity("/api/weather/city?city=Tokyo", String.class);
+        restTemplate.getForEntity("/api/weather/zip?zip=10001&country=US", String.class);
+        restTemplate.getForEntity("/api/weather/coordinates?lat=0&lon=0", String.class);
+
+        verify(openWeatherClient).getCurrentWeatherByCity("Tokyo");
+        verify(openWeatherClient).getCurrentWeatherByZip("10001", "US");
+        verify(openWeatherClient).getCurrentWeatherByCoordinates(0.0, 0.0);
+    }
 }

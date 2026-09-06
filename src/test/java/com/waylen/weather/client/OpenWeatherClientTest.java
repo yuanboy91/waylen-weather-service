@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -16,14 +17,23 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration tests for {@link OpenWeatherClient}.
  * <p>
  * These tests hit the real OpenWeatherMap API and therefore require a
- * valid {@code OPENWEATHERMAP_API_KEY} environment variable (or a key
- * configured in application.properties).
+ * valid {@code OPENWEATHERMAP_API_KEY} environment variable. The class is
+ * guarded with {@code @EnabledIfEnvironmentVariable} so running
+ * {@code mvn test} without setting the key simply skips the whole class
+ * instead of failing with HTTP 401. For local dev:
+ * <pre>
+ *   export OPENWEATHERMAP_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ *   mvn test
+ * </pre>
+ * Use {@code make test-offline} to run only the cache + controller tests
+ * that do not need network access.
  *
  * @author Waylen
  * @date 2026/9/5
  */
 @Slf4j
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "OPENWEATHERMAP_API_KEY", matches = ".+")
 public class OpenWeatherClientTest {
 
     @Autowired

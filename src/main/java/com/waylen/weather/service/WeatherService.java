@@ -1,5 +1,6 @@
 package com.waylen.weather.service;
 
+import com.waylen.weather.config.CacheConfig;
 import com.waylen.weather.client.OpenWeatherClient;
 import com.waylen.weather.model.domain.WeatherResponse;
 import com.waylen.weather.model.domain.WeatherResponse.Coordinates;
@@ -7,6 +8,7 @@ import com.waylen.weather.model.domain.WeatherResponse.Wind;
 import com.waylen.weather.model.dto.OpenWeatherDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,10 +41,15 @@ public class WeatherService {
     /**
      * Look up current weather by city name.
      *
+     * <p>Cached under the configured weather cache. Keyed on the city string
+     * exactly as supplied — callers wanting normalisation (e.g. trimming /
+     * case-folding) should do it before passing the value in.</p>
+     *
      * @param city city name, optionally suffixed with a country code
      *             (e.g. "London" or "London,GB")
      * @return mapped weather domain model
      */
+    @Cacheable(value = CacheConfig.WEATHER_CACHE, key = "#city", unless = "#result == null")
     public WeatherResponse getCurrentWeatherByCity(String city) {
         log.info("Querying weather by city: {}", city);
         OpenWeatherDTO response = openWeatherClient.getCurrentWeatherByCity(city);
@@ -52,10 +59,11 @@ public class WeatherService {
     /**
      * Look up current weather by ZIP/postal code.
      *
-     * @param zip         ZIP or postal code
-     * @param countryCode ISO 3166-1 alpha-2 country code (e.g. "US")
-     * @return mapped weather domain model
+     * <p>Cached under the configured weather cache, keyed on the composite
+     * {@code "zip,country"} pair.</p>
      */
+    @Cacheable(value = CacheConfig.WEATHER_CACHE,
+            key = "#zip + ',' + #countryCode", unless = "#result == null")
     public WeatherResponse getCurrentWeatherByZip(String zip, String countryCode) {
         log.info("Querying weather by ZIP: {}/{}", zip, countryCode);
         OpenWeatherDTO response = openWeatherClient.getCurrentWeatherByZip(zip, countryCode);
@@ -65,10 +73,13 @@ public class WeatherService {
     /**
      * Look up current weather by geographic coordinates.
      *
-     * @param lat latitude in the range [-90, 90]
-     * @param lon longitude in the range [-180, 180]
-     * @return mapped weather domain model
+     * <p>Cached under the configured weather cache, keyed on the
+     * {@code "lat,lon"} pair (raw double values — caller-controlled
+     * precision will produce distinct cache entries, which is acceptable
+     * for this service).</p>
      */
+    @Cacheable(value = CacheConfig.WEATHER_CACHE,
+            key = "#lat + ',' + #lon", unless = "#result == null")
     public WeatherResponse getCurrentWeatherByCoordinates(double lat, double lon) {
         log.info("Querying weather by coordinates: lat={}, lon={}", lat, lon);
         OpenWeatherDTO response = openWeatherClient.getCurrentWeatherByCoordinates(lat, lon);
