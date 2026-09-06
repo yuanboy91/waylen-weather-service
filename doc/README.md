@@ -61,6 +61,15 @@ curl -fsS --max-time 5 http://10.8.0.1:8099/actuator/health
 # {"status":"UP"}
 ```
 
+## Access demo
+
+Once the VPN tunnel is active and the service is reachable, open
+`http://10.8.0.1:8099/` in a browser. The single-page UI supports three
+query modes — city name, ZIP code, and geographic coordinates — and renders
+the current weather returned by the OpenWeatherMap upstream API.
+
+![Access demo](demo.png)
+
 ## Isolation proof
 
 The assignment explicitly requires evidence that the service is **not**
