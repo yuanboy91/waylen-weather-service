@@ -12,9 +12,10 @@ A lightweight Spring Boot service for querying current weather by **city name**,
 - **Anti-corruption layer**: upstream JSON stays hidden inside `client/`; the business layer only sees the `WeatherResponse` domain model
 - **Caffeine cache**: 10-min default TTL, tunable via `openweathermap.cache.*`; wired at the service layer with `@Cacheable`
 - **Shared `RestTemplate`**: explicit connect/read timeouts + `User-Agent` header
-- **Unified exception translation**: `404 LOCATION_NOT_FOUND` / `400 INVALID_ARGUMENT` / `502 UPSTREAM_ERROR` / `500 INTERNAL_ERROR`, all wrapped in the same `ApiResponse` shape
+- **Unified exception translation**: `404 LOCATION_NOT_FOUND` / `400 INVALID_ARGUMENT` / `429 TOO_MANY_REQUESTS` / `502 UPSTREAM_ERROR` / `500 INTERNAL_ERROR`, all wrapped in the same `ApiResponse` shape
 - **Input validation**: Bean Validation at the controller boundary, error messages in English (locale-agnostic)
 - **Externalised configuration**: API key / base URL / units / timeouts all bound via `@ConfigurationProperties`
+- **Rate limiting**: Guava `RateLimiter` on `/api/weather/**` (default 1 req/s, tunable via `app.rate-limit.per-second`), rejected requests map to `429 TOO_MANY_REQUESTS`
 - **Actuator health**: `/actuator/health` consumed by the deploy script
 - **Single-page UI** (`static/index.html`): tab-based query forms, vanilla `fetch` against `/api/weather/*`
 - **VPN-only deployment**: see [VPN Access](#vpn-access--isolation-proof)

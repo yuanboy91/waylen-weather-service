@@ -37,9 +37,14 @@ public class GlobalExceptionHandler {
                 "Failed to reach the weather provider, please retry later.", request);
     }
 
-    /**
-     * Maps bean-validation failures on request parameters to 400.
-     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleRateLimit(RateLimitExceededException ex,
+                                                           HttpServletRequest request) {
+        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        return respond(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS",
+                "Too many requests, please retry later.", request);
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<?>> handleValidation(ConstraintViolationException ex,
                                                             HttpServletRequest request) {
