@@ -1,9 +1,10 @@
 package com.waylen.weather.client;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.waylen.weather.config.OpenWeatherProperties;
 import com.waylen.weather.exception.LocationNotFoundException;
 import com.waylen.weather.exception.OpenWeatherMapException;
-import com.waylen.weather.model.dto.OpenWeatherDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -35,7 +36,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Override
-    public OpenWeatherDTO getCurrentWeatherByCity(String city) {
+    public JSONObject getCurrentWeatherByCity(String city) {
         URI uri = baseUri()
                 .queryParam("q", city)
                 .build()
@@ -44,7 +45,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Override
-    public OpenWeatherDTO getCurrentWeatherByZip(String zip, String countryCode) {
+    public JSONObject getCurrentWeatherByZip(String zip, String countryCode) {
         // The upstream API expects "zip={zip},{country}", e.g. zip=10001,US
         URI uri = baseUri()
                 .queryParam("zip", zip + "," + countryCode)
@@ -54,7 +55,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Override
-    public OpenWeatherDTO getCurrentWeatherByCoordinates(double lat, double lon) {
+    public JSONObject getCurrentWeatherByCoordinates(double lat, double lon) {
         URI uri = baseUri()
                 .queryParam("lat", lat)
                 .queryParam("lon", lon)
@@ -69,10 +70,11 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
                 .queryParam("units", properties.getUnits());
     }
 
-    private OpenWeatherDTO fetch(URI uri, String queryDescription) {
+    private JSONObject fetch(URI uri, String queryDescription) {
         log.debug("Calling OpenWeatherMap: query={}", queryDescription);
         try {
-            return restTemplate.getForObject(uri, OpenWeatherDTO.class);
+            String body = restTemplate.getForObject(uri, String.class);
+            return JSON.parseObject(body);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new LocationNotFoundException(queryDescription, e);

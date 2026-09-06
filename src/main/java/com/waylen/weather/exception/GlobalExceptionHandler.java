@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import java.util.stream.Collectors;
 
 /**
  * Global exception handler that translates exceptions into uniform {@link ApiResponse}.
@@ -32,6 +35,19 @@ public class GlobalExceptionHandler {
         log.error("Upstream failure: {}", ex.getMessage(), ex);
         return respond(HttpStatus.BAD_GATEWAY, "UPSTREAM_ERROR",
                 "Failed to reach the weather provider, please retry later.", request);
+    }
+
+    /**
+     * Maps bean-validation failures on request parameters to 400.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidation(ConstraintViolationException ex,
+                                                            HttpServletRequest request) {
+        String message = ex.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining("; "));
+        log.warn("Invalid request parameters: {}", message);
+        return respond(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", message, request);
     }
 
     @ExceptionHandler(Exception.class)

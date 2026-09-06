@@ -1,93 +1,76 @@
 package com.waylen.weather.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
 
 /**
- * Raw response DTO mirroring the payload of the OpenWeatherMap Current
- * Weather Data API.
- *
- * <p>Note: the upstream returns {@code cod} as a number on success but as a
- * string on error, so it is typed as {@link String} here; Jackson coerces the
- * numeric success value automatically.</p>
+ * Canonical weather schema that every provider implementation
+ * normalises its JSON payload into.
  *
  * @author Waylen
  * @date 2026/9/5
  */
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenWeatherDTO implements Serializable {
 
+    private String name;
     private Coord coord;
     private List<Weather> weather;
     private Main main;
-    private Integer visibility;
     private Wind wind;
     private Clouds clouds;
-    private Long dt;
     private Sys sys;
+    private Integer visibility;
+    private Long dt;
     private Integer timezone;
-    private Long id;
-    private String name;
-    private String cod;
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Coord {
+    public static class Coord implements Serializable {
         private Double lon;
         private Double lat;
     }
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Weather {
-        private Integer id;
+    public static class Weather implements Serializable {
         private String main;
         private String description;
         private String icon;
     }
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Main {
-
+    public static class Main implements Serializable {
         private Double temp;
 
-        @JsonProperty("feels_like")
+        @JSONField(name = "feels_like")
         private Double feelsLike;
 
-        @JsonProperty("temp_min")
+        @JSONField(name = "temp_min")
         private Double tempMin;
 
-        @JsonProperty("temp_max")
+        @JSONField(name = "temp_max")
         private Double tempMax;
 
         private Integer pressure;
         private Integer humidity;
-
     }
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Wind {
+    public static class Wind implements Serializable {
         private Double speed;
         private Integer deg;
         private Double gust;
     }
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Clouds {
+    public static class Clouds implements Serializable {
         private Integer all;
     }
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Sys {
+    public static class Sys implements Serializable {
         private String country;
         private Long sunrise;
         private Long sunset;

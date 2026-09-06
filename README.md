@@ -1,45 +1,21 @@
 # Waylen Weather Service
 
-A small Spring Boot service that exposes current weather lookups by **city name**, **ZIP / postal code**, or **geographic coordinates**, backed by the [OpenWeatherMap Current Weather API](https://openweathermap.org/current) and designed to be deployed inside a **private network accessible only via VPN**.
-
-This repository implements the take-home assignment described in `Desktop/Take Home Assignment.docx`.
-
----
-
-## Table of Contents
-
-1. [Features](#features)
-2. [Architecture](#architecture)
-3. [Project Layout](#project-layout)
-4. [Prerequisites](#prerequisites)
-5. [Quick Start](#quick-start)
-6. [API Reference](#api-reference)
-7. [Error Handling](#error-handling)
-8. [Configuration](#configuration)
-9. [Tests](#tests)
-10. [Deployment](#deployment)
-11. [VPN Access & Isolation Proof](#vpn-access--isolation-proof)
-12. [AI Tool Usage](#ai-tool-usage)
-13. [Limitations & Future Work](#limitations--future-work)
+A lightweight Spring Boot service for querying current weather by **city name**, **ZIP / postal code**, or **geographic coordinates**. It sits on top of the [OpenWeatherMap Current Weather API](https://openweathermap.org/current) and is designed to run inside a **private network reachable only via VPN**.
 
 ---
 
 ## Features
 
-- **Three query modes** supported through a uniform REST interface:
-  - `GET /api/weather/city?city=London`
-  - `GET /api/weather/zip?zip=10001&country=US`
-  - `GET /api/weather/coordinates?lat=39.9042&lon=116.4074`
-- **Anti-corruption layer**: third-party JSON shape stays inside `client/`; the rest of the app sees only the project's own `WeatherResponse` domain model, so the upstream provider can be swapped without rippling changes.
-- **Built-in cache**: a Caffeine-backed `weather` cache (10-minute TTL by default, tunable via `openweathermap.cache.*`) absorbs repeated queries without re-hitting OpenWeatherMap. Wired through `@Cacheable` on the service layer; see [`CacheConfig`](src/main/java/com/waylen/weather/config/CacheConfig.java).
-- **Shared `RestTemplate`** with explicit connect / read timeouts and a stable `User-Agent` header. Adding a new outbound HTTP dependency is a one-line bean change. See [`RestTemplateConfig`](src/main/java/com/waylen/weather/config/RestTemplateConfig.java).
-- **Uniform exception translation**: `404 LOCATION_NOT_FOUND`, `400 INVALID_REQUEST`, `502 UPSTREAM_ERROR`, `500 INTERNAL_ERROR` — all delivered as a single `ApiErrorResponse` JSON shape.
-- **Input validation** at the controller boundary (Bean Validation / JSR-303), with locale-stable English error messages.
-- **Externalized configuration** for the upstream API key, base URL, units, and connect / read timeouts — no secrets in source code.
-- **Health endpoint** exposed via Spring Boot Actuator (`/actuator/health`) and consumed by the deployment script.
-- **Decoupled, mockable client interface** (`OpenWeatherClient`) for unit testing without hitting the network.
-- **Single-page UI** (`static/index.html`) with a tabbed query form that calls the API via `fetch`.
-- Designed for **private network deployment**: see [VPN Access](#vpn-access--isolation-proof).
+- **Three query modes**: city name / ZIP+country / lat-lon (dedicated REST endpoints)
+- **Anti-corruption layer**: upstream JSON stays hidden inside `client/`; the business layer only sees the `WeatherResponse` domain model
+- **Caffeine cache**: 10-min default TTL, tunable via `openweathermap.cache.*`; wired at the service layer with `@Cacheable`
+- **Shared `RestTemplate`**: explicit connect/read timeouts + `User-Agent` header
+- **Unified exception translation**: `404 LOCATION_NOT_FOUND` / `400 INVALID_ARGUMENT` / `502 UPSTREAM_ERROR` / `500 INTERNAL_ERROR`, all wrapped in the same `ApiResponse` shape
+- **Input validation**: Bean Validation at the controller boundary, error messages in English (locale-agnostic)
+- **Externalised configuration**: API key / base URL / units / timeouts all bound via `@ConfigurationProperties`
+- **Actuator health**: `/actuator/health` consumed by the deploy script
+- **Single-page UI** (`static/index.html`): tab-based query forms, vanilla `fetch` against `/api/weather/*`
+- **VPN-only deployment**: see [VPN Access](#vpn-access--isolation-proof)
 
 ---
 
@@ -55,228 +31,150 @@ This repository implements the take-home assignment described in `Desktop/Take H
                 +-------------------+                   |
                 | WeatherController |                   |
                 +---------+---------+                   |
-                          |                             |
                           v                             |
                 +-------------------+                   |
-                |   WeatherService  | <-- logs every --+
-                +---------+---------+   call with query
-                          |             params
+                |   WeatherService  | <-- logging ------+
+                +---------+---------+
                           v
                 +-------------------+
-                |  OpenWeatherClient|
-                |   (interface)     |
+                |  OpenWeatherClient|   (interface)
                 +---------+---------+
-                          |
                           v
                 +-------------------------+
-                | DefaultOpenWeatherClient|--- RestTemplate ---> [Upstream API]
+                | DefaultOpenWeatherClient| --RestTemplate--> [Upstream]
                 +-------------------------+
 ```
 
-### Layering at a glance
-
-| Layer          | Package                              | Responsibility                                                 |
-|----------------|--------------------------------------|----------------------------------------------------------------|
-| Web            | `controller`, `exception`            | REST mapping, request validation, error translation            |
-| Service        | `service`                            | Orchestration, upstream → domain mapping, logging               |
-| Domain         | `model.domain`                       | Application-facing immutable models (`WeatherResponse`, `ApiErrorResponse`) |
-| Client         | `client`                             | Third-party integration boundary; wire types + its own exceptions |
-| Config         | `config`                             | `@ConfigurationProperties` binding for upstream settings        |
+| Layer | Package | Responsibility |
+|---|---|---|
+| Web | `controller`, `exception` | REST mapping, input validation, error translation |
+| Service | `service` | Orchestration, DTO → Domain mapping, logging |
+| Domain | `model.domain` | Application-owned models `WeatherResponse` / `ApiResponse` |
+| Client | `client` | Upstream integration boundary, provider DTOs and exceptions |
+| Config | `config` | `@ConfigurationProperties` bindings |
 
 ---
 
-## Project Layout
+## Project Structure
 
 ```
 waylen-weather-service/
 ├── pom.xml
-├── README.md                      <- this file
-├── AI_NOTES.md                    <- disclosure of AI tooling usage
-├── script/
-│   ├── deploy.sh                  <- production deployment script (uses /actuator/health)
-│   └── monitor.sh                 <- lightweight liveness probe
-├── doc/
-│   └── vpn/                       <- VPN client profile + installer
-│       ├── client01.ovpn
-│       └── openvpn-install-2.4.7-I607.exe
+├── README.md / AI_NOTES.md
+├── Makefile                          unified build/test/run/package entry
+├── script/                           deploy.sh / monitor.sh
+├── doc/                              client01.ovpn / openvpn-install-2.4.7-I607.exe / README.md
 └── src/
-    ├── main/
-    │   ├── java/com/waylen/weather/
-    │   │   ├── WeatherApplication.java
-    │   │   ├── config/OpenWeatherProperties.java
-    │   │   ├── client/
-    │   │   │   ├── OpenWeatherClient.java                 (interface)
-    │   │   │   └── DefaultOpenWeatherClient.java          (RestTemplate impl)
-    │   │   ├── controller/WeatherController.java
-    │   │   ├── exception/
-    │   │   │   ├── GlobalExceptionHandler.java
-    │   │   │   ├── LocationNotFoundException.java
-    │   │   │   └── OpenWeatherMapException.java
-    │   │   ├── model/
-    │   │   │   ├── domain/
-    │   │   │   │   ├── WeatherResponse.java
-    │   │   │   │   └── ApiErrorResponse.java
-    │   │   │   └── dto/OpenWeatherDTO.java                (upstream wire format)
-    │   │   └── service/WeatherService.java
-    │   └── resources/
-    │       ├── application.properties
-    │       ├── logback.xml
-    │       └── static/index.html                          (UI)
+    ├── main/java/com/waylen/weather/
+    │   ├── WeatherApplication.java
+    │   ├── config/                   OpenWeatherProperties / RestTemplateConfig / CacheConfig / WeatherCacheProperties
+    │   ├── client/                   OpenWeatherClient (interface) + DefaultOpenWeatherClient (impl)
+    │   ├── controller/               WeatherController
+    │   ├── exception/                GlobalExceptionHandler / OpenWeatherMapException / LocationNotFoundException
+    │   ├── model/                    domain/{WeatherResponse, ApiResponse} + dto/OpenWeatherDTO
+    │   └── service/                  WeatherService
     └── test/java/com/waylen/weather/
-        ├── controller/WeatherControllerTest.java
-        └── client/OpenWeatherClientTest.java
+        ├── client/OpenWeatherClientTest.java          real-API integration
+        ├── client/WeatherServiceCacheTest.java        cache hits / isolation / evict
+        └── controller/WeatherControllerTest.java      @MockBean + TestRestTemplate
 ```
 
 ---
 
 ## Prerequisites
 
-| Tool       | Version       | Notes                                                       |
-|------------|---------------|-------------------------------------------------------------|
-| JDK        | 1.8 (≥ 8)     | Required by `pom.xml` `maven.compiler.source` / `target`    |
-| Maven      | 3.6+          | `mvnw` is **not** vendored; supply your own installation    |
-| Network    | outbound HTTPS to `api.openweathermap.org` | For real integration tests                  |
-| VPN client | OpenVPN 2.4+  | For reaching the deployment when running behind the VPN     |
-| API key    | OpenWeatherMap | Free tier is sufficient; activate early — it takes hours to days |
-
-> All commands below assume your working directory is the project root.
+| Tool | Version | Notes |
+|---|---|---|
+| JDK | ≥ 8 | `pom.xml` `maven.compiler.source/target` |
+| Maven | 3.6+ | no bundled `mvnw` — install your own |
+| Network | outbound HTTPS to `api.openweathermap.org` | only needed for the real integration test |
+| VPN | OpenVPN 2.4+ | required to reach the deployment environment |
+| API key | OpenWeatherMap free tier | activation takes hours to days after signup |
 
 ---
 
 ## Quick Start
 
-### 1. Configure the API key
-
-The application reads its OpenWeatherMap key from the `OPENWEATHERMAP_API_KEY` environment variable, with a fallback to a placeholder in `application.properties` for local convenience.
-
-```bash
-# macOS / Linux
-export OPENWEATHERMAP_API_KEY=<your-key-from-openweathermap.org>
-
-# Windows (PowerShell)
-$env:OPENWEATHERMAP_API_KEY = "<your-key>"
-```
-
-A free key is generated at <https://openweathermap.org/api>.
-
-### 2. Build
+### 1. Build
 
 ```bash
 mvn clean package -DskipTests
 ```
 
-The runnable jar lands at `target/waylen-weather-service.jar`.
+Artifact: `target/waylen-weather-service.jar`
 
-### 3. Run
+### 2. Run
 
 ```bash
-# From the jar (preferred for production-like runs)
 java -jar target/waylen-weather-service.jar
-
-# Or, with Maven
-mvn spring-boot:run
-```
-
-By default the service listens on `http://localhost:8099`.
-
-### 4. Open the UI
-
-Visit <http://localhost:8099/> in a browser — a tabbed query form is served from `static/index.html`.
-
-### 5. Probe health
-
-```bash
-curl -s http://localhost:8099/actuator/health
-# {"status":"UP"}
+# or: mvn spring-boot:run
 ```
 
 ---
 
 ## API Reference
 
-Base path: `/api/weather` &nbsp;·&nbsp; Content-Type: `application/json`
+Base path: `/api/weather` &nbsp;·&nbsp; `Content-Type: application/json`
 
-### `GET /city`
+### `GET /city?city=...`
 
-Look up current weather by city name. The `city` value is forwarded to OpenWeatherMap as-is, so suffixes like `London,GB` are accepted.
+| Parameter | Type | Required | Constraints |
+|---|---|---|---|
+| `city` | string | yes | 1–100 chars, non-blank; supports `London,GB` suffix |
 
-| Parameter | Type   | Required | Notes                                       |
-|-----------|--------|----------|---------------------------------------------|
-| `city`    | string | yes      | 1 – 100 chars; must not be blank            |
+### `GET /zip?zip=...&country=...`
 
-```bash
-curl -s 'http://localhost:8099/api/weather/city?city=London'
-```
+| Parameter | Type | Required | Constraints |
+|---|---|---|---|
+| `zip` | string | yes | 1–10 letters / digits / spaces / hyphens |
+| `country` | string | yes | exactly 2 uppercase letters (ISO 3166-1 alpha-2) |
 
-Sample response (`200 OK`):
+### `GET /coordinates?lat=...&lon=...`
+
+| Parameter | Type | Required | Constraints |
+|---|---|---|---|
+| `lat` | float | yes | `-90.0` ≤ x ≤ `90.0` |
+| `lon` | float | yes | `-180.0` ≤ x ≤ `180.0` |
+
+### Response Shape
+
+Success responses are uniformly wrapped by the controller in `ApiResponse<T>`:
 
 ```json
 {
-  "locationName": "London",
-  "country": "GB",
-  "coordinates": { "lat": 51.5074, "lon": -0.1278 },
-  "condition": "Clouds",
-  "description": "scattered clouds",
-  "iconCode": "03d",
-  "temperature": 20.9,
-  "feelsLike": 20.6,
-  "tempMin": 19.4,
-  "tempMax": 22.1,
-  "humidity": 64,
-  "pressure": 1011,
-  "wind": { "speed": 4.6, "degree": 230, "gust": null },
-  "cloudiness": 40,
-  "visibility": 10000,
-  "timestamp": 1757080000,
-  "sunrise": 1757043600,
-  "sunset": 1757092800,
-  "timezoneOffset": 3600
+  "code": "OK",
+  "message": "success",
+  "data": {
+    "locationName": "London",
+    "country": "GB",
+    "condition": "Clouds",
+    "description": "scattered clouds",
+    "iconCode": "03d",
+    "temperature": 20.9,
+    "feelsLike": 20.6,
+    "humidity": 64,
+    "pressure": 1011,
+    "wind": { "speed": 4.6, "degree": 230, "gust": 6.3 },
+    "cloudiness": 40,
+    "visibility": 10000
+  },
+  "timestamp": 1757080000000
 }
 ```
 
-### `GET /zip`
+### `GET /`
 
-Look up current weather by ZIP / postal code. Country is required (ISO 3166-1 alpha-2, uppercase).
-
-| Parameter | Type   | Required | Constraint                                                       |
-|-----------|--------|----------|------------------------------------------------------------------|
-| `zip`     | string | yes      | 1–10 letters / digits / spaces / hyphens                         |
-| `country` | string | yes      | exactly 2 uppercase letters (e.g. `US`, `GB`)                    |
-
-```bash
-curl -s 'http://localhost:8099/api/weather/zip?zip=10001&country=US'
-```
-
-### `GET /coordinates`
-
-Look up current weather by latitude / longitude.
-
-| Parameter | Type  | Required | Constraint          |
-|-----------|-------|----------|---------------------|
-| `lat`     | float | yes      | `-90.0` ≤ x ≤ `90.0` |
-| `lon`     | float | yes      | `-180.0` ≤ x ≤ `180.0` |
-
-```bash
-curl -s 'http://localhost:8099/api/weather/coordinates?lat=39.9042&lon=116.4074'
-```
-
-### Response shape
-
-All success responses share the `WeatherResponse` shape shown above. `null` fields are omitted from the JSON payload (`@JsonInclude(NON_NULL)`), and all numeric fields use the unit configured by `openweathermap.api.units` (default `metric` → °C, m/s, hPa, m).
-
-### `GET /` (UI)
-
-A single-page static UI is served from `static/index.html`. It exposes three query tabs (City / ZIP / Coordinates) and renders the result as a card.
+Single-page UI (`static/index.html`) with three query tabs.
 
 ### `GET /actuator/health`
 
-Standard Spring Boot Actuator endpoint — returns `{"status":"UP"}` when the app is healthy. Consumed by `script/deploy.sh` for deploy-time readiness probing and rollback validation.
+`{"status":"UP"}` — used by the deploy script as a readiness probe.
 
 ---
 
 ## Error Handling
 
-All error responses use the following shape (returned by `GlobalExceptionHandler`):
+All error responses share a unified shape:
 
 ```json
 {
@@ -287,126 +185,58 @@ All error responses use the following shape (returned by `GlobalExceptionHandler
 }
 ```
 
-| HTTP | `code`               | When                                                |
-|------|----------------------|-----------------------------------------------------|
-| 400  | `INVALID_REQUEST`    | A `@RequestParam` failed Bean Validation (blank, bad regex, lat/lon out of range) |
-| 404  | `LOCATION_NOT_FOUND` | Upstream reported the location does not exist       |
-| 502  | `UPSTREAM_ERROR`     | Upstream returned 4xx (other than 404) / 5xx, timed out, or could not be reached |
-| 500  | `INTERNAL_ERROR`     | Any uncaught exception                              |
-
-The external `message` for 502/500 deliberately hides internal details to avoid leaking upstream error bodies or stack frames.
-
 ---
 
-## Configuration
+## Testing
 
-All configuration lives in `src/main/resources/application.properties`.
-
-| Key                                       | Default                | Description                                      |
-|-------------------------------------------|------------------------|--------------------------------------------------|
-| `server.port`                             | `8099`                 | HTTP listener port                               |
-| `openweathermap.api.base-url`             | `…/data/2.5`           | Upstream root, `/weather` is appended internally |
-| `openweathermap.api.key`                  | `${OPENWEATHERMAP_API_KEY:REPLACE_WITH_OPENWEATHERMAP_KEY}` | Resolved from env var; the placeholder is intentionally non-key-looking so secret scanners do not flag it |
-| `openweathermap.api.units`                | `metric`               | `metric` / `imperial` / `standard`               |
-| `openweathermap.api.connect-timeout-ms`   | `3000`                 | TCP connect timeout                              |
-| `openweathermap.api.read-timeout-ms`      | `5000`                 | Socket read timeout                              |
-| `openweathermap.cache.ttl`                | `10m`                  | Caffeine TTL on the `weather` cache              |
-| `openweathermap.cache.maximum-size`       | `500`                  | Caffeine max entries on the `weather` cache      |
-| `management.endpoints.web.exposure.include` | `health,info`        | Which actuator endpoints to expose               |
-
-The key is intentionally **not** hard-coded; an environment variable override is the production expectation. The literal in the properties file is a non-key-looking marker (`REPLACE_WITH_OPENWEATHERMAP_KEY`) — GitHub's secret scanner would otherwise flag a real key with a similar shape. Set the env var (or replace the marker locally) before any deployment.
-
----
-
-## Tests
-
-```bash
-# Offline tests (cache + controller): run without an API key
-make test-offline
-# or directly:
-mvn test -Dtest='WeatherServiceCacheTest,WeatherControllerTest'
-
-# Full suite, including the live OpenWeatherMap client test
-export OPENWEATHERMAP_API_KEY=<your-key>
-mvn test
-
-# Compile only
-mvn test-compile
-```
-
-| Test class                         | Style            | Notes                                                                                          |
-|------------------------------------|------------------|------------------------------------------------------------------------------------------------|
-| `WeatherServiceCacheTest`          | `@SpringBootTest` | Verifies `@Cacheable` semantics: same key → upstream called once; different keys → separate calls. Stubbed client, no network. |
-| `WeatherControllerTest`            | `@SpringBootTest` + `@MockBean` + `TestRestTemplate` | Drives the HTTP layer end-to-end with the client stubbed. Verifies parameter validation, normal responses, and the error contract — does **not** require an API key. |
-| `OpenWeatherClientTest`            | `@SpringBootTest` (gated) | Hits the real upstream API. Class is annotated `@EnabledIfEnvironmentVariable("OPENWEATHERMAP_API_KEY")` so it is skipped when the env var is missing. Acts as a smoke / regression test for the client integration. |
-
-> The client is an **interface** (`OpenWeatherClient`) precisely so future test additions can plug in a `MockRestServiceServer` or a hand-rolled stub without depending on network reachability.
+| Test Class | Style | Notes |
+|---|---|---|
+| `WeatherServiceCacheTest` | `@SpringBootTest` | Verifies `@Cacheable` semantics; stubbed client, no network |
+| `WeatherControllerTest` | `@SpringBootTest` + `@MockBean` + `TestRestTemplate` | HTTP-layer end-to-end, no API key required |
+| `OpenWeatherClientTest` | `@SpringBootTest` (conditionally enabled) | Hits the real upstream API, gated by `@EnabledIfEnvironmentVariable`; skipped without an API key |
 
 ---
 
 ## Deployment
 
-`script/deploy.sh` is the production deployment entry-point. It expects:
-
-- A working tree at `SRC_DIR=/home/deploy/waylen-weather-service`
-- A writable application directory at `DEPLOY_DIR=/opt/application`
-- `mvn`, `git`, `curl`, `java` on the deployer's `PATH`
-
-Usage:
-
 ```bash
-./script/deploy.sh            # Pull, build, restart, and health-check
-./script/deploy.sh --rollback # Roll back to the previous jar
+./script/deploy.sh            # pull, build, restart, health-check
+./script/deploy.sh --rollback # rollback
 ```
 
-The script pulls from `origin`, packages with `mvn clean package -DskipTests`, backs up the running jar, launches the new jar with `BUILD_ID=dontKillMe nohup`, and probes `http://localhost:8099/actuator/health` up to 10 × 3 s before declaring the deploy a failure.
+Expected layout: `SRC_DIR=/home/deploy/waylen-weather-service`, `DEPLOY_DIR=/opt/application`, with `mvn` / `git` / `curl` / `java` on PATH. The script pulls `origin` → runs `mvn clean package -DskipTests` → backs up the old jar → starts the new one via `BUILD_ID=dontKillMe nohup` → polls `/actuator/health` for up to 30 s.
 
-`script/monitor.sh` is a companion one-shot script that polls the same health endpoint and tails the application log.
+`script/monitor.sh` tails the log and polls the health endpoint alongside it.
 
 ---
 
 ## VPN Access & Isolation Proof
 
-The project expects the service to run inside a **private network reachable only through an OpenVPN tunnel**. The deployment artifacts are bundled in `doc/vpn/`:
+The deployment sits behind a private network reachable only through OpenVPN. Materials are in `doc/`:
 
-| File                                       | Purpose                                                              |
-|--------------------------------------------|----------------------------------------------------------------------|
-| `doc/vpn/client01.ovpn`                    | OpenVPN client profile for the reviewer                               |
-| `doc/vpn/openvpn-install-2.4.7-I607.exe`   | Windows installer for the OpenVPN GUI client                          |
+| File | Purpose | Audience |
+|---|---|---|
+| `doc/client01.ovpn` | OpenVPN client configuration for the reviewer | reviewer |
+| `doc/openvpn-install-2.4.7-I607.exe` | Windows GUI client installer | reviewer |
+| `doc/README.md` | Connection steps + isolation-proof procedure | reviewer |
 
-### Connecting
+### Connect
 
-1. Install `openvpn-install-2.4.7-I607.exe` on a Windows host (or use any OpenVPN 2.4+ client).
-2. Import `client01.ovpn`.
-3. Connect. Once the tunnel is up, the service is reachable at `http://<vpn-internal-host>:8099/`.
-
-### Proof of isolation
-
-The reason the assignment specifically asks for evidence is that VPN-only accessibility is **the** hardest requirement to verify visually. Captured for the reviewer:
-
-- A successful `GET http://<host>:8099/actuator/health` **with the VPN connected** (`{"status":"UP"}`).
-- A failed `curl --max-time 5 http://<host>:8099/` **without the VPN connected**, ending in either `Connection timed out` or a `No route to host` error.
-- Network configuration screenshots from the reviewer’s host showing: (a) the OpenVPN adapter assigned and route pushed to the service subnet, (b) the same query failing when the VPN is disconnected.
-
-These commands and screenshots live alongside the deployment package and can be regenerated by anyone who follows the deployment steps.
+1. Install `openvpn-install-2.4.7-I607.exe` (or any OpenVPN 2.4+ client)
+2. Import `client01.ovpn`
+3. Connect, then visit `http://<vpn-internal-host>:8099/`
 
 ---
 
-## AI Tool Usage
+## Limitations & Future Improvements
 
-A disclosure of which AI tooling was used, where, and how, lives in [`AI_NOTES.md`](AI_NOTES.md). Reviewers are encouraged to read it alongside this README.
-
----
-
-## Limitations & Future Work
-
-- **Retry / circuit breaker**: the client has no retries for transient 5xx or connection drops. Adding Spring Retry or Resilience4j would harden it under flaky network conditions.
-- **Authentication**: there is currently no auth on the API; because the service sits behind a VPN, this is assumed to be sufficient for the assignment. A token-based gateway in front would be the next step.
-- **HTTPS**: the service serves plain HTTP. A terminating reverse proxy (nginx) with TLS would be required before exposing it beyond the VPN.
-- **Observability beyond `/health`**: bringing in Micrometer / Prometheus would make the actuator surface a lot more useful operationally.
-- **OpenAPI doc**: adding `springdoc-openapi-ui` would auto-generate a Swagger page from the controller.
-- **Real-environment integration test gating**: `OpenWeatherClientTest` is gated on `OPENWEATHERMAP_API_KEY` being present, so `mvn test` is green without one but skips the live calls; in CI the key should be injected via secret store.
+- **Retry / circuit breaker**: the client has no retry-on-disconnect logic; Spring Retry could be introduced next
+- **Authentication**: currently none — relies on VPN for perimeter security; a token gateway could be added next
+- **HTTPS**: currently plain HTTP; external exposure needs nginx + TLS in front
+- **Observability**: only `/health` today; Micrometer / Prometheus could be layered on
+- **OpenAPI docs**: `springdoc-openapi-ui` could auto-generate a Swagger page
+- **CI integration tests**: inject `OPENWEATHERMAP_API_KEY` via a secrets store in CI so `OpenWeatherClientTest` can actually run
 
 ---
 
-© 2026 Waylen. Code released for review of the take-home submission.
+© 2026 Waylen.
