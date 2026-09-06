@@ -1,5 +1,6 @@
 package com.waylen.weather.controller;
 
+import com.waylen.weather.model.domain.ApiResponse;
 import com.waylen.weather.model.domain.WeatherResponse;
 import com.waylen.weather.service.WeatherService;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +36,9 @@ public class WeatherController {
      * @return weather for the resolved location
      */
     @GetMapping("/city")
-    public WeatherResponse getByCity(@RequestParam("city")
-                             @NotBlank(message = "city must not be blank") String city) {
-        return weatherService.getCurrentWeatherByCity(city);
+    public ApiResponse<WeatherResponse> getByCity(@RequestParam("city")
+                                                  @NotBlank(message = "city must not be blank") String city) {
+        return ApiResponse.success(weatherService.getCurrentWeatherByCity(city));
     }
 
     /**
@@ -48,7 +49,7 @@ public class WeatherController {
      * @return weather for the resolved location
      */
     @GetMapping("/zip")
-    public WeatherResponse getByZip(
+    public ApiResponse<WeatherResponse> getByZip(
             @RequestParam("zip")
             @NotBlank(message = "zip must not be blank")
             @Pattern(regexp = "^[A-Za-z0-9\\- ]{1,10}$",
@@ -60,7 +61,7 @@ public class WeatherController {
             @Pattern(regexp = "^[A-Z]{2}$",
                     message = "country must be a 2-letter ISO code in upper case")
             String country) {
-        return weatherService.getCurrentWeatherByZip(zip, country);
+        return ApiResponse.success(weatherService.getCurrentWeatherByZip(zip, country));
     }
 
     /**
@@ -71,7 +72,7 @@ public class WeatherController {
      * @return weather for the resolved location
      */
     @GetMapping("/coordinates")
-    public WeatherResponse getByCoordinates(
+    public ApiResponse<WeatherResponse> getByCoordinates(
             @RequestParam("lat")
             @DecimalMin(value = "-90", message = "lat must be >= -90")
             @DecimalMax(value = "90", message = "lat must be <= 90")
@@ -81,7 +82,7 @@ public class WeatherController {
             @DecimalMin(value = "-180", message = "lon must be >= -180")
             @DecimalMax(value = "180", message = "lon must be <= 180")
             double lon) {
-        return weatherService.getCurrentWeatherByCoordinates(lat, lon);
+        return ApiResponse.success(weatherService.getCurrentWeatherByCoordinates(lat, lon));
     }
 
 }
