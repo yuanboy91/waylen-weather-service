@@ -366,7 +366,6 @@
     function renderWeather(w) {
         var t = num(w.temperature), fl = num(w.feelsLike);
         var wind = w.wind && w.wind.speed != null ? w.wind.speed.toFixed(1) + ' m/s' : '\u2014';
-        var icon = w.iconCode ? 'https://openweathermap.org/img/wn/' + w.iconCode + '@2x.png' : '';
 
         document.getElementById('result').innerHTML =
             '<div class="result-card">' +
@@ -376,7 +375,6 @@
             '<div class="temp">' + t + '</div>' +
             '</div>' +
             '<div class="condition">' +
-            (icon ? '<img src="' + icon + '" alt="">' : '') +
             '<span>' + esc(w.description || w.condition || '') + '</span>' +
             '</div>' +
             '<div class="grid">' +
