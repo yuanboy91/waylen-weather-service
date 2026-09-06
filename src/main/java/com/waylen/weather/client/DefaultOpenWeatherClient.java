@@ -42,6 +42,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Retryable(
+            listeners = "retryLoggingListener",
             include = OpenWeatherMapException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 500, multiplier = 2))
@@ -55,6 +56,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Retryable(
+            listeners = "retryLoggingListener",
             include = OpenWeatherMapException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 500, multiplier = 2))
@@ -69,6 +71,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     }
 
     @Retryable(
+            listeners = "retryLoggingListener",
             include = OpenWeatherMapException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 500, multiplier = 2))
