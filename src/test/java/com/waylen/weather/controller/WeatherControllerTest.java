@@ -1,8 +1,7 @@
 package com.waylen.weather.controller;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.waylen.weather.client.OpenWeatherClient;
+import com.waylen.weather.model.domain.WeatherResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,22 +34,28 @@ public class WeatherControllerTest {
     private OpenWeatherClient openWeatherClient;
 
     /**
-     * Canonical weather JSON fixture used to stub the client.
+     * Canonical domain fixture used to stub the client.
      */
-    private static JSONObject buildMockJson() {
-        return JSON.parseObject("{\"name\":\"Beijing\","
-                + "\"coord\":{\"lat\":39.9042,\"lon\":116.4074},"
-                + "\"main\":{\"temp\":25.0,\"feels_like\":26.0,\"temp_min\":23.0,\"temp_max\":27.0,"
-                + "\"humidity\":60,\"pressure\":1013},"
-                + "\"weather\":[{\"main\":\"Clear\",\"description\":\"clear sky\",\"icon\":\"01d\"}],"
-                + "\"wind\":{\"speed\":3.5,\"deg\":180},"
-                + "\"sys\":{\"country\":\"CN\",\"sunrise\":1725500000,\"sunset\":1725546000},"
-                + "\"clouds\":{\"all\":0},\"visibility\":10000,\"dt\":1725520000,\"timezone\":28800}");
+    private static WeatherResponse buildMockResponse() {
+        return WeatherResponse.builder()
+                .locationName("Beijing")
+                .country("CN")
+                .condition("Clear")
+                .description("clear sky")
+                .iconCode("01d")
+                .temperature(25.0)
+                .feelsLike(26.0)
+                .humidity(60)
+                .pressure(1013)
+                .wind(WeatherResponse.Wind.builder().speed(3.5).degree(180).build())
+                .cloudiness(0)
+                .visibility(10000)
+                .build();
     }
 
     @Test
     void getByCity_shouldReturnWeather() {
-        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN")).thenReturn(buildMockJson());
+        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN")).thenReturn(buildMockResponse());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/city?city=Beijing,CN", String.class);
@@ -74,7 +79,7 @@ public class WeatherControllerTest {
 
     @Test
     void getByZip_shouldReturnWeather() {
-        when(openWeatherClient.getCurrentWeatherByZip("100001", "CN")).thenReturn(buildMockJson());
+        when(openWeatherClient.getCurrentWeatherByZip("100001", "CN")).thenReturn(buildMockResponse());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/zip?zip=100001&country=CN", String.class);
@@ -95,15 +100,17 @@ public class WeatherControllerTest {
     @Test
     void getByCoordinates_shouldReturnWeather() {
         when(openWeatherClient.getCurrentWeatherByCoordinates(39.9042, 116.4074))
-                .thenReturn(buildMockJson());
+                .thenReturn(buildMockResponse());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/coordinates?lat=39.9042&lon=116.4074", String.class);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Note: the domain model does not carry coordinates back to the caller,
+        // so the assertions check the serialised weather fields instead.
         assertThat(resp.getBody())
-                .contains("\"lat\":39.9042")
-                .contains("\"lon\":116.4074");
+                .contains("\"locationName\":\"Beijing\"")
+                .contains("\"temperature\":25.0");
         verify(openWeatherClient).getCurrentWeatherByCoordinates(39.9042, 116.4074);
     }
 
@@ -119,9 +126,9 @@ public class WeatherControllerTest {
     // (cache behaviour itself is covered by WeatherServiceCacheTest).
     @Test
     void allThreeEndpoints_shouldHitTheServiceLayer() {
-        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockJson());
-        when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockJson());
-        when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockJson());
+        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockResponse());
+        when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockResponse());
+        when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockResponse());
 
         restTemplate.getForEntity("/api/weather/city?city=Tokyo", String.class);
         restTemplate.getForEntity("/api/weather/zip?zip=10001&country=US", String.class);

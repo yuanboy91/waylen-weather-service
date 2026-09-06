@@ -1,6 +1,6 @@
 package com.waylen.weather.client;
 
-import com.alibaba.fastjson.JSONObject;
+import com.waylen.weather.model.domain.WeatherResponse;
 
 /**
  * Thin abstraction over the OpenWeatherMap Current Weather Data API.
@@ -16,7 +16,7 @@ public interface OpenWeatherClient {
      * @param city city name, optionally with a country code (e.g. {@code "London,GB"})
      * @return the raw upstream response
      */
-    JSONObject getCurrentWeatherByCity(String city);
+    WeatherResponse getCurrentWeatherByCity(String city);
 
     /**
      * Fetches current weather by ZIP code.
@@ -25,7 +25,7 @@ public interface OpenWeatherClient {
      * @param countryCode ISO 3166-1 alpha-2 country code, e.g. {@code "US"}
      * @return the raw upstream response
      */
-    JSONObject getCurrentWeatherByZip(String zip, String countryCode);
+    WeatherResponse getCurrentWeatherByZip(String zip, String countryCode);
 
     /**
      * Fetches current weather by geographic coordinates.
@@ -34,6 +34,6 @@ public interface OpenWeatherClient {
      * @param lon longitude, [-180, 180]
      * @return the raw upstream response
      */
-    JSONObject getCurrentWeatherByCoordinates(double lat, double lon);
+    WeatherResponse getCurrentWeatherByCoordinates(double lat, double lon);
 
 }

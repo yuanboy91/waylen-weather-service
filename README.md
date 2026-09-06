@@ -50,9 +50,9 @@ A lightweight Spring Boot service for querying current weather by **city name**,
 | Layer | Package | Responsibility |
 |---|---|---|
 | Web | `controller`, `exception` | REST mapping, input validation, error translation |
-| Service | `service` | Orchestration, DTO → Domain mapping, logging |
+| Service | `service` | Orchestration + result caching |
 | Domain | `model.domain` | Application-owned models `WeatherResponse` / `ApiResponse` |
-| Client | `client` | Upstream integration boundary, provider DTOs and exceptions |
+| Client | `client` | Upstream integration boundary, payload → domain conversion (per client impl), provider DTOs and exceptions |
 | Config | `config` | `@ConfigurationProperties` bindings |
 
 ---

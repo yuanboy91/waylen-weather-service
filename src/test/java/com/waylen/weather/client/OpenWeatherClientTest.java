@@ -1,7 +1,7 @@
 package com.waylen.weather.client;
 
-import com.alibaba.fastjson.JSONObject;
 import com.waylen.weather.exception.LocationNotFoundException;
+import com.waylen.weather.model.domain.WeatherResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,34 +30,34 @@ public class OpenWeatherClientTest {
 
     @Test
     void byCity_shouldReturnWeather() {
-        JSONObject json = openWeatherClient.getCurrentWeatherByCity("Beijing");
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("Beijing");
 
-        assertNotNull(json.getString("name"));
-        assertNotNull(json.getJSONObject("main").getDouble("temp"));
-        assertFalse(json.getJSONArray("weather").isEmpty());
+        assertNotNull(weather.getLocationName());
+        assertNotNull(weather.getTemperature());
+        assertNotNull(weather.getCondition());
     }
 
     @Test
     void byCityWithCountry_shouldResolveCountryCode() {
-        JSONObject json = openWeatherClient.getCurrentWeatherByCity("London,GB");
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("London,GB");
 
-        assertEquals("GB", json.getJSONObject("sys").getString("country"));
+        assertEquals("GB", weather.getCountry());
     }
 
     @Test
     void byZip_shouldReturnWeather() {
-        JSONObject json = openWeatherClient.getCurrentWeatherByZip("10001", "US");
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByZip("10001", "US");
 
-        assertNotNull(json.getString("name"));
-        assertNotNull(json.getJSONObject("main").getDouble("temp"));
+        assertNotNull(weather.getLocationName());
+        assertNotNull(weather.getTemperature());
     }
 
     @Test
     void byCoordinates_shouldReturnWeather() {
-        JSONObject json = openWeatherClient.getCurrentWeatherByCoordinates(39.909, 116.397);
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCoordinates(39.909, 116.397);
 
-        assertNotNull(json.getJSONObject("coord").getDouble("lat"));
-        assertNotNull(json.getJSONObject("coord").getDouble("lon"));
+        assertNotNull(weather.getLocationName());
+        assertNotNull(weather.getTemperature());
     }
 
     @Test

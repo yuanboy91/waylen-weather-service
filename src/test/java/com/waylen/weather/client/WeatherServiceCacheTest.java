@@ -1,7 +1,5 @@
 package com.waylen.weather.client;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.waylen.weather.model.domain.WeatherResponse;
 import com.waylen.weather.service.WeatherService;
 import org.junit.jupiter.api.Test;
@@ -30,12 +28,19 @@ class WeatherServiceCacheTest {
     private WeatherService weatherService;
 
     /**
-     * Minimal JSON stub sufficient for the {@link WeatherService} mapping.
+     * Minimal domain stub sufficient for the cache assertions.
      */
-    private static JSONObject stub(String name) {
-        return JSON.parseObject("{\"name\":\"" + name + "\",\"dt\":1700000000,"
-                + "\"main\":{\"temp\":20.0,\"feels_like\":19.5,\"humidity\":60,\"pressure\":1010},"
-                + "\"weather\":[{\"main\":\"Clouds\",\"description\":\"few clouds\",\"icon\":\"02d\"}]}");
+    private static WeatherResponse stub(String name) {
+        return WeatherResponse.builder()
+                .locationName(name)
+                .condition("Clouds")
+                .description("few clouds")
+                .iconCode("02d")
+                .temperature(20.0)
+                .feelsLike(19.5)
+                .humidity(60)
+                .pressure(1010)
+                .build();
     }
 
     @Test
