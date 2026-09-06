@@ -37,7 +37,7 @@ public class CacheConfig {
                 .build());
 
         SimpleCacheManager manager = new SimpleCacheManager();
-        manager.setCaches(Collections.singletonList(weatherCache));
+        manager.setCaches(Collections.singletonList(new LoggingCache(weatherCache)));
         return manager;
     }
 
