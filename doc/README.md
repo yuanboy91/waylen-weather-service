@@ -49,16 +49,16 @@ import `client01.ovpn`.
 Once the tunnel is up, the service is reachable at:
 
 ```
-http://<vpn-internal-host>:8099/
+http://10.8.0.1:8099/
 ```
 
-`<vpn-internal-host>` is the private IP assigned by the OpenVPN server (typically
-`10.8.0.x`). The reviewer is given the exact value separately.
+> **Note:** `10.8.0.1` is the server-side Tun interface IP and the VPN gateway.
+> Clients are assigned addresses in the `10.8.0.x` range, and all VPN traffic is routed through `10.8.0.1` as the next hop.
 
 A quick reachability probe:
 
 ```bash
-curl -fsS --max-time 5 http://<vpn-internal-host>:8099/actuator/health
+curl -fsS --max-time 5 http://10.8.0.1:8099/actuator/health
 # {"status":"UP"}
 ```
 
