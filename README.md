@@ -17,6 +17,7 @@ A lightweight Spring Boot service for querying current weather by **city name**,
 - **Externalised configuration**: API key / base URL / units / timeouts all bound via `@ConfigurationProperties`
 - **Rate limiting**: Guava `RateLimiter` on `/api/weather/**` (default 1 req/s, tunable via `app.rate-limit.per-second`), rejected requests map to `429 TOO_MANY_REQUESTS`
 - **Actuator health**: `/actuator/health` consumed by the deploy script
+- **Spring Boot Admin**: monitored by the standalone `waylen-admin-server` project (client registers itself at startup; console on port 9090)
 - **Single-page UI** (`static/index.html`): tab-based query forms, vanilla `fetch` against `/api/weather/*`
 - **VPN-only deployment**: see [VPN Access](#vpn-access--isolation-proof)
 
@@ -201,6 +202,14 @@ Single-page UI (`static/index.html`) with three query tabs.
 
 `{"status":"UP"}` — used by the deploy script as a readiness probe.
 
+### Spring Boot Admin (standalone server)
+
+This app is monitored by the standalone `waylen-admin-server` project (sibling directory, port 9090): it registers itself at startup via `spring.boot.admin.client.url`, and the admin server aggregates this app's actuator endpoints into its monitoring UI.
+
+- Console: `http://localhost:9090` — health details, metrics, env, caches, thread dump, live log view (`logs/info.log` via `/actuator/logfile`), and more
+- Registry JSON: `curl -H 'Accept: application/json' http://localhost:9090/applications`
+- Key client properties: `spring.boot.admin.client.url`, `spring.boot.admin.client.instance.service-base-url`, `management.endpoints.web.exposure.include=*`
+
 ---
 
 ## Error Handling
@@ -265,7 +274,7 @@ The deployment sits behind a private network reachable only through OpenVPN. Mat
 - **Circuit breaker**: transient upstream failures (network / 5xx / 429) are now retried by spring-retry (3 attempts, 500 ms backoff doubling each time); a circuit breaker remains a future option
 - **Authentication**: currently none — relies on VPN for perimeter security; a token gateway could be added next
 - **HTTPS**: currently plain HTTP; external exposure needs nginx + TLS in front
-- **Observability**: only `/health` today; Micrometer / Prometheus could be layered on
+- **Observability**: monitored by the standalone `waylen-admin-server` (port 9090) with the full actuator endpoint set; Micrometer / Prometheus could still be layered on for metric scraping
 - **CI integration tests**: inject `OPENWEATHERMAP_API_KEY` via a secrets store in CI so `OpenWeatherClientTest` can actually run
 
 ---

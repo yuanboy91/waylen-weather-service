@@ -30,6 +30,7 @@
         <fastjson.version>1.2.75</fastjson.version>
         <guava.version>22.0</guava.version>
         <lombok.version>1.18.32</lombok.version>
+        <springboot.admin.version>2.3.1</springboot.admin.version>
     </properties>
 
     <dependencies>
@@ -95,6 +96,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <!-- spring-boot-admin client -->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-client</artifactId>
+            <version>${springboot.admin.version}</version>
         </dependency>
         <!--lombok-->
         <dependency>
