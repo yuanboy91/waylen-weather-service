@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>404 — Page Not Found · Waylen Weather Service</title>
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --card: #fff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 16px rgba(15, 23, 42, .08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .code {
+            font-size: 5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin: 0 0 .5rem;
+            color: var(--primary);
+            letter-spacing: -.05em;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 0 0 .5rem;
+            font-weight: 600;
+        }
+
+        .path {
+            display: inline-block;
+            background: #f3f4f6;
+            color: var(--muted);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Code", "Roboto Mono", monospace;
+            font-size: .85rem;
+            padding: .35rem .65rem;
+            border-radius: 6px;
+            margin: .5rem 0 1.25rem;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            word-break: break-all;
+        }
+
+        p {
+            color: var(--muted);
+            margin: 0 0 1.5rem;
+            line-height: 1.55;
+        }
+
+        .actions {
+            display: flex;
+            gap: .75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: .6rem 1.2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: .95rem;
+            font-weight: 500;
+            border: 1px solid transparent;
+            transition: background .15s, border-color .15s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover { background: #f9fafb; }
+
+        footer {
+            margin-top: 1.5rem;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="code">404</div>
+            <h1>Page Not Found</h1>
+            <div class="path" id="path">/</div>
+            <p>The page you're looking for doesn't exist on this service. If you reached this through a link, the URL may have changed.</p>
+            <div class="actions">
+                <a href="/" class="btn btn-primary">Back to Home</a>
+                <a href="/swagger-ui.html" class="btn btn-secondary">API Docs</a>
+            </div>
+        </div>
+        <footer>© 2026 Waylen Weather Service</footer>
+    </div>
+    <script>
+        // Echo the actual path the user tried to reach.
+        (function () {
+            var el = document.getElementById('path');
+            if (el && window.location && window.location.pathname) {
+                el.textContent = window.location.pathname;
+            }
+        })();
+    </script>
+</body>
+</html>
