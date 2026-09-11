@@ -52,4 +52,14 @@ public class WeatherService {
         return openWeatherClient.getCurrentWeatherByCoordinates(lat, lon);
     }
 
+    /**
+     * Look up current weather by OpenWeatherMap city ID.
+     */
+    @Cacheable(value = CacheConfig.WEATHER_CACHE,
+            key = "'id:' + #cityId", unless = "#result == null")
+    public WeatherResponse getCurrentWeatherByCityId(String cityId) {
+        log.info("Querying weather by city ID: {}", cityId);
+        return openWeatherClient.getCurrentWeatherByCityId(cityId);
+    }
+
 }

@@ -55,6 +55,7 @@
             gap: .25rem;
             border-bottom: 1px solid var(--border);
             margin-bottom: 1.25rem;
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -257,11 +258,12 @@
 <body>
 <div class="container">
     <h1>Waylen Weather Service</h1>
-    <p class="subtitle">Look up the current weather by city, ZIP code, or coordinates</p>
+    <p class="subtitle">Look up the current weather by city, ZIP code, city ID, or coordinates</p>
 
     <div class="tabs">
         <button class="tab active" data-target="panel-city">By city</button>
         <button class="tab" data-target="panel-zip">By ZIP code</button>
+        <button class="tab" data-target="panel-id">By city ID</button>
         <button class="tab" data-target="panel-coord">By coordinates</button>
     </div>
 
@@ -285,6 +287,16 @@
                 <div class="field">
                     <label for="country">Country code (ISO)</label>
                     <input id="country" maxlength="2" placeholder="US" required type="text">
+                </div>
+                <button class="btn" type="submit">Look up</button>
+            </div>
+        </form>
+
+        <form class="tab-panel" id="panel-id" onsubmit="return query('id')">
+            <div class="form-row">
+                <div class="field">
+                    <label for="cityId">OpenWeatherMap city ID</label>
+                    <input id="cityId" placeholder="e.g. 5909629 (unique, immune to duplicate names)" required type="text">
                 </div>
                 <button class="btn" type="submit">Look up</button>
             </div>
@@ -340,6 +352,10 @@
             var zip = val('zip'), country = val('country');
             if (!zip || !country) return false;
             url = '/api/weather/zip?zip=' + enc(zip) + '&country=' + enc(country.toUpperCase());
+        } else if (type === 'id') {
+            var cityId = val('cityId');
+            if (!cityId) return false;
+            url = '/api/weather/id?id=' + enc(cityId);
         } else {
             var lat = val('lat'), lon = val('lon');
             if (lat === '' || lon === '') return false;

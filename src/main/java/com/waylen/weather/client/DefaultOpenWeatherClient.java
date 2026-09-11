@@ -85,6 +85,22 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
         return toWeather(fetch(uri, "lat=" + lat + ",lon=" + lon));
     }
 
+    @Retryable(
+            listeners = "retryLoggingListener",
+            include = OpenWeatherMapException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2))
+    @Override
+    public WeatherResponse getCurrentWeatherByCityId(String cityId) {
+        // City IDs are globally unique, so this lookup never suffers from
+        // duplicate city names (e.g. q=London resolves ambiguously).
+        URI uri = baseUri()
+                .queryParam("id", cityId)
+                .build()
+                .toUri();
+        return toWeather(fetch(uri, "id=" + cityId));
+    }
+
     private UriComponentsBuilder baseUri() {
         return UriComponentsBuilder.fromHttpUrl(properties.getBaseUrl() + "/weather")
                 .queryParam("appid", properties.getKey())

@@ -36,4 +36,17 @@ public interface OpenWeatherClient {
      */
     WeatherResponse getCurrentWeatherByCoordinates(double lat, double lon);
 
+    /**
+     * Fetches current weather by OpenWeatherMap city ID.
+     *
+     * <p>The city ID uniquely identifies a city in the OpenWeatherMap
+     * database (e.g. {@code 5909629}), so lookups by ID never suffer from
+     * duplicate city names. IDs can be obtained from the official city list
+     * or from the {@code id} field of any weather response.</p>
+     *
+     * @param cityId OpenWeatherMap city ID, digits only
+     * @return the raw upstream response
+     */
+    WeatherResponse getCurrentWeatherByCityId(String cityId);
+
 }

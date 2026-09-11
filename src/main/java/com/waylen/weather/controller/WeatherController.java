@@ -85,4 +85,23 @@ public class WeatherController {
         return ApiResponse.success(weatherService.getCurrentWeatherByCoordinates(lat, lon));
     }
 
+    /**
+     * Look up current weather by OpenWeatherMap city ID.
+     *
+     * <p>City IDs are globally unique, so this endpoint is immune to
+     * duplicate city names.</p>
+     *
+     * @param id OpenWeatherMap city ID (digits only), e.g. "5909629"
+     * @return weather for the resolved location
+     */
+    @GetMapping("/id")
+    public ApiResponse<WeatherResponse> getById(
+            @RequestParam("id")
+            @NotBlank(message = "id must not be blank")
+            @Pattern(regexp = "^\\d{1,10}$",
+                    message = "id must be 1-10 digits")
+            String id) {
+        return ApiResponse.success(weatherService.getCurrentWeatherByCityId(id));
+    }
+
 }
