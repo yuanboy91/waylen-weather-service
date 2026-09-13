@@ -30,7 +30,7 @@ public class OpenWeatherClientTest {
 
     @Test
     void byCity_shouldReturnWeather() {
-        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("Beijing");
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("Beijing", null);
 
         assertNotNull(weather.getLocationName());
         assertNotNull(weather.getTemperature());
@@ -39,7 +39,7 @@ public class OpenWeatherClientTest {
 
     @Test
     void byCityWithCountry_shouldResolveCountryCode() {
-        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("London,GB");
+        WeatherResponse weather = openWeatherClient.getCurrentWeatherByCity("London,GB", null);
 
         assertEquals("GB", weather.getCountry());
     }
@@ -63,7 +63,7 @@ public class OpenWeatherClientTest {
     @Test
     void byInvalidCity_shouldThrowLocationNotFound() {
         assertThrows(LocationNotFoundException.class,
-                () -> openWeatherClient.getCurrentWeatherByCity("XxNoSuchCityxX_12345"));
+                () -> openWeatherClient.getCurrentWeatherByCity("XxNoSuchCityxX_12345", null));
     }
 
     @Test

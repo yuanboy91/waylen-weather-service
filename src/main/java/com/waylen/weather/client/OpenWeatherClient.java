@@ -16,7 +16,7 @@ public interface OpenWeatherClient {
      * @param city city name, optionally with a country code (e.g. {@code "London,GB"})
      * @return the raw upstream response
      */
-    WeatherResponse getCurrentWeatherByCity(String city);
+    WeatherResponse getCurrentWeatherByCity(String city, String units);
 
     /**
      * Fetches current weather by ZIP code.

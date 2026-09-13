@@ -103,15 +103,17 @@
             margin-bottom: .25rem;
         }
 
-        input {
+        input, select {
             padding: .55rem .75rem;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: .95rem;
             font-family: inherit;
+            background: #fff;
+            height: 40px;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
@@ -126,6 +128,7 @@
             font-size: .95rem;
             font-weight: 600;
             cursor: pointer;
+            height: 40px;
         }
 
         .btn:hover {
@@ -274,6 +277,14 @@
                     <label for="city">City name</label>
                     <input id="city" placeholder="e.g. London or London,GB" required type="text">
                 </div>
+                <div class="field" style="max-width:140px">
+                    <label for="units">Units</label>
+                    <select id="units">
+                        <option value="standard">Standard</option>
+                        <option value="metric" selected>Metric</option>
+                        <option value="imperial">Imperial</option>
+                    </select>
+                </div>
                 <button class="btn" type="submit">Look up</button>
             </div>
         </form>
@@ -347,7 +358,7 @@
         if (type === 'city') {
             var city = val('city');
             if (!city) return false;
-            url = '/api/weather/city?city=' + enc(city);
+            url = '/api/weather/city?city=' + enc(city) + '&units=' + val('units');
         } else if (type === 'zip') {
             var zip = val('zip'), country = val('country');
             if (!zip || !country) return false;

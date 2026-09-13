@@ -45,14 +45,14 @@ class WeatherServiceCacheTest {
 
     @Test
     void byCity_secondCallShouldHitCache() {
-        when(openWeatherClient.getCurrentWeatherByCity("London")).thenReturn(stub("London"));
+        when(openWeatherClient.getCurrentWeatherByCity("London", null)).thenReturn(stub("London"));
 
-        WeatherResponse first = weatherService.getCurrentWeatherByCity("London");
-        WeatherResponse second = weatherService.getCurrentWeatherByCity("London");
+        WeatherResponse first = weatherService.getCurrentWeatherByCity("London", null);
+        WeatherResponse second = weatherService.getCurrentWeatherByCity("London", null);
 
         assertSame(first, second);
         assertEquals("London", first.getLocationName());
-        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("London");
+        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("London", null);
     }
 
     @Test
@@ -82,14 +82,14 @@ class WeatherServiceCacheTest {
 
     @Test
     void distinctKeys_shouldBeCachedSeparately() {
-        when(openWeatherClient.getCurrentWeatherByCity("Tokyo")).thenReturn(stub("Tokyo"));
-        when(openWeatherClient.getCurrentWeatherByCity("Berlin")).thenReturn(stub("Berlin"));
+        when(openWeatherClient.getCurrentWeatherByCity("Tokyo", null)).thenReturn(stub("Tokyo"));
+        when(openWeatherClient.getCurrentWeatherByCity("Berlin", null)).thenReturn(stub("Berlin"));
 
-        assertEquals("Tokyo", weatherService.getCurrentWeatherByCity("Tokyo").getLocationName());
-        assertEquals("Berlin", weatherService.getCurrentWeatherByCity("Berlin").getLocationName());
+        assertEquals("Tokyo", weatherService.getCurrentWeatherByCity("Tokyo", null).getLocationName());
+        assertEquals("Berlin", weatherService.getCurrentWeatherByCity("Berlin", null).getLocationName());
 
-        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("Tokyo");
-        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("Berlin");
+        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("Tokyo", null);
+        verify(openWeatherClient, times(1)).getCurrentWeatherByCity("Berlin", null);
     }
 
 }

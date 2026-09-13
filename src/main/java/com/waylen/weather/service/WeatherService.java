@@ -26,10 +26,10 @@ public class WeatherService {
     /**
      * Look up current weather by city name (e.g. "London" or "London,GB").
      */
-    @Cacheable(value = CacheConfig.WEATHER_CACHE, key = "#city", unless = "#result == null")
-    public WeatherResponse getCurrentWeatherByCity(String city) {
-        log.info("Querying weather by city: {}", city);
-        return openWeatherClient.getCurrentWeatherByCity(city);
+    @Cacheable(value = CacheConfig.WEATHER_CACHE, key = "#city + ',' + #units", unless = "#result == null")
+    public WeatherResponse getCurrentWeatherByCity(String city, String units) {
+        log.info("Querying weather by city: {}, units: {}", city, units);
+        return openWeatherClient.getCurrentWeatherByCity(city, units);
     }
 
     /**

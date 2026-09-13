@@ -9,6 +9,7 @@ import com.waylen.weather.model.domain.WeatherResponse;
 import com.waylen.weather.model.domain.WeatherResponse.Wind;
 import com.waylen.weather.model.dto.OpenWeatherDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -47,8 +48,8 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
             maxAttempts = 3,
             backoff = @Backoff(delay = 500, multiplier = 2))
     @Override
-    public WeatherResponse getCurrentWeatherByCity(String city) {
-        URI uri = baseUri()
+    public WeatherResponse getCurrentWeatherByCity(String city, String units) {
+        URI uri = baseUri(units)
                 .queryParam("q", city)
                 .build()
                 .toUri();
@@ -63,7 +64,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     @Override
     public WeatherResponse getCurrentWeatherByZip(String zip, String countryCode) {
         // The upstream API expects "zip={zip},{country}", e.g. zip=10001,US
-        URI uri = baseUri()
+        URI uri = baseUri(null)
                 .queryParam("zip", zip + "," + countryCode)
                 .build()
                 .toUri();
@@ -77,7 +78,7 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
             backoff = @Backoff(delay = 500, multiplier = 2))
     @Override
     public WeatherResponse getCurrentWeatherByCoordinates(double lat, double lon) {
-        URI uri = baseUri()
+        URI uri = baseUri(null)
                 .queryParam("lat", lat)
                 .queryParam("lon", lon)
                 .build()
@@ -94,17 +95,18 @@ public class DefaultOpenWeatherClient implements OpenWeatherClient {
     public WeatherResponse getCurrentWeatherByCityId(String cityId) {
         // City IDs are globally unique, so this lookup never suffers from
         // duplicate city names (e.g. q=London resolves ambiguously).
-        URI uri = baseUri()
+        URI uri = baseUri(null)
                 .queryParam("id", cityId)
                 .build()
                 .toUri();
         return toWeather(fetch(uri, "id=" + cityId));
     }
 
-    private UriComponentsBuilder baseUri() {
+    private UriComponentsBuilder baseUri(String units) {
+        String finalUnits = StringUtils.isEmpty(units) ? properties.getUnits() : units;
         return UriComponentsBuilder.fromHttpUrl(properties.getBaseUrl() + "/weather")
                 .queryParam("appid", properties.getKey())
-                .queryParam("units", properties.getUnits());
+                .queryParam("units", finalUnits);
     }
 
     private JSONObject fetch(URI uri, String queryDescription) {

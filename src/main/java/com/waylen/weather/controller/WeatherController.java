@@ -37,8 +37,9 @@ public class WeatherController {
      */
     @GetMapping("/city")
     public ApiResponse<WeatherResponse> getByCity(@RequestParam("city")
-                                                  @NotBlank(message = "city must not be blank") String city) {
-        return ApiResponse.success(weatherService.getCurrentWeatherByCity(city));
+                                                  @NotBlank(message = "city must not be blank") String city,
+                                                  @RequestParam("units") String units) {
+        return ApiResponse.success(weatherService.getCurrentWeatherByCity(city, units));
     }
 
     /**

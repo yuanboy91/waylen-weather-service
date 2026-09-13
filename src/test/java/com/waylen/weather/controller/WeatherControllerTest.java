@@ -55,7 +55,7 @@ public class WeatherControllerTest {
 
     @Test
     void getByCity_shouldReturnWeather() {
-        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN")).thenReturn(buildMockResponse());
+        when(openWeatherClient.getCurrentWeatherByCity("Beijing,CN", null)).thenReturn(buildMockResponse());
 
         ResponseEntity<String> resp = restTemplate.getForEntity(
                 "/api/weather/city?city=Beijing,CN", String.class);
@@ -66,7 +66,7 @@ public class WeatherControllerTest {
                 .contains("\"country\":\"CN\"")
                 .contains("\"condition\":\"Clear\"")
                 .contains("\"temperature\":25.0");
-        verify(openWeatherClient).getCurrentWeatherByCity("Beijing,CN");
+        verify(openWeatherClient).getCurrentWeatherByCity("Beijing,CN", null);
     }
 
     @Test
@@ -126,7 +126,7 @@ public class WeatherControllerTest {
     // (cache behaviour itself is covered by WeatherServiceCacheTest).
     @Test
     void allThreeEndpoints_shouldHitTheServiceLayer() {
-        when(openWeatherClient.getCurrentWeatherByCity(anyString())).thenReturn(buildMockResponse());
+        when(openWeatherClient.getCurrentWeatherByCity(anyString(), null)).thenReturn(buildMockResponse());
         when(openWeatherClient.getCurrentWeatherByZip(anyString(), anyString())).thenReturn(buildMockResponse());
         when(openWeatherClient.getCurrentWeatherByCoordinates(anyDouble(), anyDouble())).thenReturn(buildMockResponse());
 
@@ -134,7 +134,7 @@ public class WeatherControllerTest {
         restTemplate.getForEntity("/api/weather/zip?zip=10001&country=US", String.class);
         restTemplate.getForEntity("/api/weather/coordinates?lat=0&lon=0", String.class);
 
-        verify(openWeatherClient).getCurrentWeatherByCity("Tokyo");
+        verify(openWeatherClient).getCurrentWeatherByCity("Tokyo", null);
         verify(openWeatherClient).getCurrentWeatherByZip("10001", "US");
         verify(openWeatherClient).getCurrentWeatherByCoordinates(0.0, 0.0);
     }
